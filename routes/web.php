@@ -2,6 +2,14 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ProfileController;
+use App\Http\Controllers\CashAccountController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ExpenseCategoryController;
+use App\Http\Controllers\MasterDashboardController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\StoreProfileController;
+use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,5 +41,53 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/{user}/edit', [UserManagementController::class, 'edit'])->name('edit');
         Route::put('/{user}', [UserManagementController::class, 'update'])->name('update');
         Route::patch('/{user}/toggle-status', [UserManagementController::class, 'toggleStatus'])->name('toggle_status');
+    });
+
+    // Master Data Dashboard
+    Route::get('/master', MasterDashboardController::class)->name('master.index');
+
+    // Master: Categories (FR-MST-01) & Units (FR-MST-02)
+    Route::middleware('permission:catalog.manage')->group(function () {
+        Route::resource('categories', CategoryController::class)->except(['show']);
+        Route::patch('/categories/{category}/toggle-status', [CategoryController::class, 'toggleStatus'])->name('categories.toggle_status');
+
+        Route::resource('units', UnitController::class)->except(['show']);
+        Route::patch('/units/{unit}/toggle-status', [UnitController::class, 'toggleStatus'])->name('units.toggle_status');
+    });
+
+    // Master: Products & Lookup (FR-MST-03, FR-MST-04)
+    Route::get('/api/v1/products/lookup', [ProductController::class, 'lookup'])->name('products.lookup')->middleware('permission:products.view');
+    Route::get('/products', [ProductController::class, 'index'])->name('products.index')->middleware('permission:products.view');
+    Route::get('/products/create', [ProductController::class, 'create'])->name('products.create')->middleware('permission:products.create');
+    Route::post('/products', [ProductController::class, 'store'])->name('products.store')->middleware('permission:products.create');
+    Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show')->middleware('permission:products.view');
+    Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit')->middleware('permission:products.update');
+    Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update')->middleware('permission:products.update');
+    Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy')->middleware('permission:products.deactivate');
+    Route::patch('/products/{product}/toggle-status', [ProductController::class, 'toggleStatus'])->name('products.toggle_status')->middleware('permission:products.deactivate');
+
+    // Master: Suppliers (FR-MST-05)
+    Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index')->middleware('permission:suppliers.view');
+    Route::get('/suppliers/create', [SupplierController::class, 'create'])->name('suppliers.create')->middleware('permission:suppliers.manage');
+    Route::post('/suppliers', [SupplierController::class, 'store'])->name('suppliers.store')->middleware('permission:suppliers.manage');
+    Route::get('/suppliers/{supplier}', [SupplierController::class, 'show'])->name('suppliers.show')->middleware('permission:suppliers.view');
+    Route::get('/suppliers/{supplier}/edit', [SupplierController::class, 'edit'])->name('suppliers.edit')->middleware('permission:suppliers.manage');
+    Route::put('/suppliers/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update')->middleware('permission:suppliers.manage');
+    Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy')->middleware('permission:suppliers.manage');
+    Route::patch('/suppliers/{supplier}/toggle-status', [SupplierController::class, 'toggleStatus'])->name('suppliers.toggle_status')->middleware('permission:suppliers.manage');
+
+    // Master: Expense Categories (FR-MST-06)
+    Route::middleware('permission:expenses.create')->group(function () {
+        Route::resource('expense-categories', ExpenseCategoryController::class)->except(['show']);
+        Route::patch('/expense-categories/{expense_category}/toggle-status', [ExpenseCategoryController::class, 'toggleStatus'])->name('expense-categories.toggle_status');
+    });
+
+    // Master: Cash Accounts & Store Settings (FR-MST-06, FR-STORE-01)
+    Route::middleware('permission:store_settings.manage')->group(function () {
+        Route::resource('cash-accounts', CashAccountController::class)->except(['show']);
+        Route::patch('/cash-accounts/{cash_account}/toggle-status', [CashAccountController::class, 'toggleStatus'])->name('cash-accounts.toggle_status');
+
+        Route::get('/store-profile', [StoreProfileController::class, 'edit'])->name('store-profile.edit');
+        Route::put('/store-profile', [StoreProfileController::class, 'update'])->name('store-profile.update');
     });
 });

@@ -28,7 +28,7 @@
         <!-- Login Card -->
         <div class="bg-white rounded-lg p-6 sm:p-8 shadow-sm border border-slate-200">
             <div class="mb-6">
-                <h2 class="text-xl font-semibold tracking-tight text-slate-900">Masuk ke akun</h2>
+                <h2 class="text-xl font-semibold tracking-tight text-slate-900">Masuk ke Akun Anda</h2>
                 <p class="text-sm text-slate-500 mt-1">Gunakan kredensial kerja untuk melanjutkan.</p>
             </div>
 

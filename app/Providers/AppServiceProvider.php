@@ -24,6 +24,14 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(User::class, UserPolicy::class);
 
+        // Check user permission via Gate::before if ability matches permission code
+        Gate::before(function (User $user, string $ability) {
+            if ($user->hasPermission($ability)) {
+                return true;
+            }
+
+        });
+
         // Generic permission gate: Gate::allows('permission', 'products.view')
         Gate::define('permission', function (User $user, string $permission) {
             return $user->hasPermission($permission);

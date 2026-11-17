@@ -75,6 +75,63 @@
                                 Profil Saya
                             </a>
                         </li>
+
+                        <!-- Master Data Links (Mobile) -->
+                        @if($user && ($user->hasPermission('products.view') || $user->hasPermission('catalog.manage') || $user->hasPermission('suppliers.view')))
+                            <li class="pt-2 border-t border-white/10">
+                                <span class="text-xs font-semibold uppercase text-slate-400">Master Data</span>
+                            </li>
+                            <li>
+                                <a href="{{ route('master.index') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('master.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2 text-sm font-medium">
+                                    Ringkasan Master
+                                </a>
+                            </li>
+                            @if($user->hasPermission('products.view'))
+                                <li>
+                                    <a href="{{ route('products.index') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('products.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2 text-sm font-medium">
+                                        Katalog Produk
+                                    </a>
+                                </li>
+                            @endif
+                            @if($user->hasPermission('catalog.manage'))
+                                <li>
+                                    <a href="{{ route('categories.index') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('categories.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2 text-sm font-medium">
+                                        Kategori Produk
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="{{ route('units.index') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('units.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2 text-sm font-medium">
+                                        Satuan Kuantitas
+                                    </a>
+                                </li>
+                            @endif
+                            @if($user->hasPermission('suppliers.view'))
+                                <li>
+                                    <a href="{{ route('suppliers.index') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('suppliers.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2 text-sm font-medium">
+                                        Pemasok / Supplier
+                                    </a>
+                                </li>
+                            @endif
+                            @if($user->hasPermission('catalog.manage') || $user->hasPermission('expenses.create'))
+                                <li>
+                                    <a href="{{ route('expense-categories.index') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('expense-categories.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2 text-sm font-medium">
+                                        Kategori Biaya
+                                    </a>
+                                </li>
+                            @endif
+                            @if($user->hasPermission('store_settings.manage'))
+                                <li>
+                                    <a href="{{ route('cash-accounts.index') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('cash-accounts.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2 text-sm font-medium">
+                                        Akun Kas & Bank
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="{{ route('store-profile.edit') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('store-profile.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2 text-sm font-medium">
+                                        Profil Toko & Struk
+                                    </a>
+                                </li>
+                            @endif
+                        @endif
                     </ul>
                 </nav>
             </div>
@@ -116,6 +173,79 @@
                 </a>
             @endif
 
+            <!-- Section Label: Master Data & Katalog -->
+            @if($user && ($user->hasPermission('products.view') || $user->hasPermission('catalog.manage') || $user->hasPermission('suppliers.view') || $user->hasPermission('store_settings.manage')))
+                <div class="pt-5 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    Master Data
+                </div>
+
+                <div class="space-y-0.5">
+                    <a href="{{ route('master.index') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md {{ request()->routeIs('master.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">
+                        <svg class="mr-3 h-5 w-5 shrink-0 {{ request()->routeIs('master.*') ? 'text-white' : 'text-slate-400 group-hover:text-slate-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                        </svg>
+                        Dashboard Master
+                    </a>
+
+                    @if($user->hasPermission('products.view'))
+                        <a href="{{ route('products.index') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md {{ request()->routeIs('products.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">
+                            <svg class="mr-3 h-5 w-5 shrink-0 {{ request()->routeIs('products.*') ? 'text-white' : 'text-slate-400 group-hover:text-slate-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                            </svg>
+                            Katalog Produk
+                        </a>
+                    @endif
+
+                    @if($user->hasPermission('catalog.manage'))
+                        <a href="{{ route('categories.index') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md {{ request()->routeIs('categories.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">
+                            <svg class="mr-3 h-5 w-5 shrink-0 {{ request()->routeIs('categories.*') ? 'text-white' : 'text-slate-400 group-hover:text-slate-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                            </svg>
+                            Kategori Produk
+                        </a>
+                        <a href="{{ route('units.index') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md {{ request()->routeIs('units.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">
+                            <svg class="mr-3 h-5 w-5 shrink-0 {{ request()->routeIs('units.*') ? 'text-white' : 'text-slate-400 group-hover:text-slate-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+                            </svg>
+                            Satuan Presisi
+                        </a>
+                    @endif
+
+                    @if($user->hasPermission('suppliers.view'))
+                        <a href="{{ route('suppliers.index') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md {{ request()->routeIs('suppliers.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">
+                            <svg class="mr-3 h-5 w-5 shrink-0 {{ request()->routeIs('suppliers.*') ? 'text-white' : 'text-slate-400 group-hover:text-slate-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                            Pemasok / Supplier
+                        </a>
+                    @endif
+
+                    @if($user->hasPermission('catalog.manage') || $user->hasPermission('expenses.create'))
+                        <a href="{{ route('expense-categories.index') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md {{ request()->routeIs('expense-categories.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">
+                            <svg class="mr-3 h-5 w-5 shrink-0 {{ request()->routeIs('expense-categories.*') ? 'text-white' : 'text-slate-400 group-hover:text-slate-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                            Kategori Biaya
+                        </a>
+                    @endif
+
+                    @if($user->hasPermission('store_settings.manage'))
+                        <a href="{{ route('cash-accounts.index') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md {{ request()->routeIs('cash-accounts.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">
+                            <svg class="mr-3 h-5 w-5 shrink-0 {{ request()->routeIs('cash-accounts.*') ? 'text-white' : 'text-slate-400 group-hover:text-slate-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                            </svg>
+                            Akun Kas & Bank
+                        </a>
+                        <a href="{{ route('store-profile.edit') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md {{ request()->routeIs('store-profile.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">
+                            <svg class="mr-3 h-5 w-5 shrink-0 {{ request()->routeIs('store-profile.*') ? 'text-white' : 'text-slate-400 group-hover:text-slate-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                            Profil Toko & Struk
+                        </a>
+                    @endif
+                </div>
+            @endif
+
             <!-- Section Label: Operasional Toko -->
             <div class="pt-5 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 Operasional Toko
@@ -130,16 +260,6 @@
                         </svg>
                         POS Kasir
                         <span class="ml-auto text-[10px] font-mono uppercase bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">T06</span>
-                    </span>
-                @endif
-
-                @if($user && $user->hasPermission('products.view'))
-                    <span class="flex items-center px-3 py-2 text-sm font-medium rounded-lg text-slate-500 opacity-70 cursor-not-allowed">
-                        <svg class="mr-3 h-5 w-5 shrink-0 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                        </svg>
-                        Katalog & Produk
-                        <span class="ml-auto text-[10px] font-mono uppercase bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">T03</span>
                     </span>
                 @endif
 
