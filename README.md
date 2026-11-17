@@ -1,6 +1,6 @@
 # KasirPro
 
-Sistem Point of Sale (POS).
+Aplikasi kasir dan manajemen toko berbasis web menggunakan Laravel, dengan fitur penjualan, inventaris, pembelian, supplier, retur, pengeluaran, dan laporan keuangan.
 
 ## Pemilik dan Kontributor
 
