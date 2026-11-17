@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\ProfileController;
 use App\Http\Controllers\CashAccountController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ExpenseCategoryController;
+use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\MasterDashboardController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\StoreProfileController;
@@ -89,5 +90,21 @@ Route::middleware(['auth', 'active'])->group(function () {
 
         Route::get('/store-profile', [StoreProfileController::class, 'edit'])->name('store-profile.edit');
         Route::put('/store-profile', [StoreProfileController::class, 'update'])->name('store-profile.update');
+    });
+
+    // Inventory & Stock Ledger (FR-INV-02..07)
+    Route::middleware('permission:inventory.view')->group(function () {
+        Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
+        Route::get('/inventory/low-stock', [InventoryController::class, 'lowStock'])->name('inventory.low_stock');
+        Route::get('/inventory/{product}/card', [InventoryController::class, 'stockCard'])->name('inventory.card');
+        Route::get('/inventory/{product}/reconcile', [InventoryController::class, 'reconcile'])->name('inventory.reconcile');
+
+        // Inventory JSON API
+        Route::prefix('api/v1/inventory')->name('api.inventory.')->group(function () {
+            Route::get('/balances', [InventoryController::class, 'index'])->name('balances');
+            Route::get('/movements', [InventoryController::class, 'movements'])->name('movements');
+            Route::get('/low-stock', [InventoryController::class, 'lowStock'])->name('low_stock');
+            Route::get('/{product}/reconcile', [InventoryController::class, 'reconcile'])->name('product_reconcile');
+        });
     });
 });

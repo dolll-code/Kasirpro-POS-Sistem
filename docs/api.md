@@ -2,7 +2,7 @@
 
 | Metadata | Nilai |
 |---|---|
-| Status | **Diimplementasikan (Tahap 03 — Selesai)** |
+| Status | **Diimplementasikan (Tahap 04 — Selesai)** |
 | Base URL | `http://localhost:8000` |
 | Autentikasi | Cookie-based Session (`SameSite=Lax`, CSRF Protected) |
 | Terakhir Ditinjau | 2026-11-17 |
@@ -134,3 +134,23 @@
 |---|---|---|---|---|
 | `GET` | `/store-profile` | `store-profile.edit` | `store_settings.manage` | Formulir pengaturan profil toko & struk thermal |
 | `PUT` | `/store-profile` | `store-profile.update` | `store_settings.manage` | Perbarui identitas toko, logo, & lebar nota (58/80 mm) |
+
+---
+
+## 4. Katalog Rute Persediaan & Buku Besar Stok (Tahap 04)
+
+### 4.1 Rute Antarmuka Web
+| Method | Rute URI | Nama Rute | Izin (Permission) | Deskripsi |
+|---|---|---|---|---|
+| `GET` | `/inventory` | `inventory.index` | `inventory.view` | Dashboard saldo stok, status ketersediaan, & filter kategori |
+| `GET` | `/inventory/low-stock` | `inventory.low_stock` | `inventory.view` | Daftar produk berstatus stok habis (0) dan menipis (<= minimum) |
+| `GET` | `/inventory/{product}/card` | `inventory.card` | `inventory.view` | Kartu stok barang: mutasi kronologis & status rekonsiliasi |
+| `GET` | `/inventory/{product}/reconcile` | `inventory.reconcile` | `inventory.view` | Status rekonsiliasi saldo proyeksi vs ledger mutasi |
+
+### 4.2 Endpoint JSON API (`/api/v1/inventory/*`)
+| Method | Rute URI | Izin (Permission) | Deskripsi |
+|---|---|---|---|
+| `GET` | `/api/v1/inventory/balances` | `inventory.view` | Mengambil data saldo stok produk (terfilter & terpaginasi) |
+| `GET` | `/api/v1/inventory/movements` | `inventory.view` | Mengambil jejak mutasi buku besar persediaan append-only |
+| `GET` | `/api/v1/inventory/low-stock` | `inventory.view` | Mengambil data produk yang membutuhkan restock |
+| `GET` | `/api/v1/inventory/{product}/reconcile` | `inventory.view` | Memeriksa integritas konsistensi saldo vs akumulasi mutasi |

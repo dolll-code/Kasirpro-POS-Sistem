@@ -2,7 +2,7 @@
 
 | Metadata | Nilai |
 |---|---|
-| Status | **Diimplementasikan (Tahap 03 — Selesai)** |
+| Status | **Diimplementasikan (Tahap 04 — Selesai)** |
 | Engine | **MySQL 8.0 / InnoDB** |
 | Collation | `utf8mb4_unicode_ci` |
 | Terakhir Ditinjau | 2026-11-17 |
@@ -235,3 +235,108 @@ Profil toko tunggal aktif untuk snapshot nota transaksi dan konfigurasi printer 
 | `is_active` | `TINYINT(1)` | Tidak | Default `1` |
 | `created_at` | `TIMESTAMP` | Ya | Waktu pencatatan |
 | `updated_at` | `TIMESTAMP` | Ya | Waktu pembaruan |
+
+---
+
+## 5. Struktur Tabel Persediaan & Penomoran Dokumen (Tahap 04)
+
+### 5.1 Tabel `document_sequences`
+Mengelola penomoran dokumen transaksi secara aman (*atomic counter*) menggunakan *row-level locking* (`SELECT ... FOR UPDATE`). Menjamin tidak adanya nomor ganda (*no duplicate document numbers*) tanpa mengandalkan `MAX(id)+1`.
+
+| Kolom | Tipe Data | Nullable | Keterangan / Constraint |
+|---|---|:---:|---|
+| `id` | `BIGINT UNSIGNED` | Tidak | Primary Key, Auto Increment |
+| `document_type` | `VARCHAR(50)` | Tidak | Prefiks jenis dokumen (`TRX`, `PO`, `RCV`, `RET`, `EXP`, `SO`, `ADJ`) |
+| `period_key` | `VARCHAR(20)` | Tidak | Kunci periode tanggal (`YYYYMMDD` zona Asia/Jakarta) |
+| `last_number` | `BIGINT UNSIGNED` | Tidak | Nomor urut terakhir (default `0`) |
+| `created_at` | `TIMESTAMP` | Ya | Waktu pencatatan |
+| `updated_at` | `TIMESTAMP` | Ya | Waktu pembaruan |
+
+**Constraint Unik:**
+- `UNIQUE (document_type, period_key)` (`uq_doc_seq_type_period`)
+
+---
+
+### 5.2 Tabel `inventory_balances`
+Tabel proyeksi saldo fisik dan persediaan barang (*projection cache*). Kuantitas persediaan terisolasi dari form produk dan hanya bergerak melalui mutasi persediaan resmi dalam transaksi basis data.
+
+| Kolom | Tipe Data | Nullable | Keterangan / Constraint |
+|---|---|:---:|---|
+| `id` | `BIGINT UNSIGNED` | Tidak | Primary Key, Auto Increment |
+| `product_id` | `BIGINT UNSIGNED` | Tidak | **UNIQUE**, Foreign Key -> `products.id` (**`ON DELETE RESTRICT`**) |
+| `quantity_on_hand` | `DECIMAL(15,3)` | Tidak | Saldo fisik di rak toko (default `0.000`) |
+| `quantity_reserved` | `DECIMAL(15,3)` | Tidak | Cadangan transaksi checkout transfer gantung (default `0.000`) |
+| `average_cost` | `DECIMAL(15,2)` | Tidak | Harga Pokok Penjualan rata-rata bergerak (MAC, default `0.00`) |
+| `version` | `BIGINT UNSIGNED` | Tidak | Nomor versi penguncian baris (default `1`) |
+| `created_at` | `TIMESTAMP` | Ya | Waktu pencatatan |
+| `updated_at` | `TIMESTAMP` | Ya | Waktu pembaruan |
+
+**CHECK Constraints (MySQL 8.0+ / InnoDB):**
+- `quantity_on_hand >= 0` (`chk_inv_on_hand_nonneg`)
+- `quantity_reserved >= 0` (`chk_inv_reserved_nonneg`)
+- `quantity_reserved <= quantity_on_hand` (`chk_inv_reserved_lte_on_hand`)
+- `average_cost >= 0` (`chk_inv_avg_cost_nonneg`)
+
+---
+
+### 5.3 Tabel `stock_movements`
+Buku besar (*audit ledger*) seluruh arus masuk dan keluar barang secara kekal (*immutable* dan *append-only*). Dilarang diubah atau dihapus melalui antarmuka pengguna maupun operasi model.
+
+| Kolom | Tipe Data | Nullable | Keterangan / Constraint |
+|---|---|:---:|---|
+| `id` | `BIGINT UNSIGNED` | Tidak | Primary Key, Auto Increment |
+| `product_id` | `BIGINT UNSIGNED` | Tidak | Foreign Key -> `products.id` (**`ON DELETE RESTRICT`**) |
+| `movement_type` | `VARCHAR(50)` | Tidak | **INDEX** (`IN_PURCHASE`, `OUT_SALE`, `IN_RETURN_RESELLABLE`, `IN_INITIAL`, dll) |
+| `source_type` | `VARCHAR(100)` | Tidak | Nama modul/sumber transaksi (`purchase_receipts`, `sales`, dll) |
+| `source_id` | `BIGINT UNSIGNED` | Ya | ID dokumen transaksi sumber |
+| `source_number` | `VARCHAR(100)` | Ya | Nomor dokumen transaksi (`RCV-...`, `TRX-...`, dll) |
+| `quantity_in` | `DECIMAL(15,3)` | Tidak | Kuantitas masuk (default `0.000`, non-negatif) |
+| `quantity_out` | `DECIMAL(15,3)` | Tidak | Kuantitas keluar (default `0.000`, non-negatif) |
+| `balance_before`| `DECIMAL(15,3)` | Tidak | Saldo fisik sebelum mutasi terjadi |
+| `balance_after` | `DECIMAL(15,3)` | Tidak | Saldo fisik setelah mutasi terjadi |
+| `unit_cost` | `DECIMAL(15,2)` | Tidak | Biaya per unit saat mutasi (non-negatif) |
+| `total_cost` | `DECIMAL(15,2)` | Tidak | Total nilai moneter mutasi (`qty * unit_cost`) |
+| `notes` | `TEXT` | Ya | Keterangan / alasan mutasi persediaan |
+| `created_by` | `BIGINT UNSIGNED` | Ya | Foreign Key -> `users.id` (**`ON DELETE RESTRICT`**) |
+| `occurred_at` | `TIMESTAMP` | Tidak | Waktu mutasi terjadi (zona `Asia/Jakarta`) |
+| `created_at` | `TIMESTAMP` | Tidak | Waktu mutasi dicatat |
+
+**Indeks:**
+- `INDEX (product_id, occurred_at, id)` (`idx_stock_mov_prod_occurred`)
+- `INDEX (source_type, source_id)` (`idx_stock_mov_source`)
+- `INDEX (movement_type)` (`idx_stock_mov_type`)
+
+**CHECK Constraints (MySQL 8.0+ / InnoDB):**
+- `quantity_in >= 0` (`chk_mov_qty_in_nonneg`)
+- `quantity_out >= 0` (`chk_mov_qty_out_nonneg`)
+- `unit_cost >= 0` (`chk_mov_unit_cost_nonneg`)
+- `total_cost >= 0` (`chk_mov_total_cost_nonneg`)
+
+---
+
+### 5.4 Tabel `product_cost_histories`
+Pencatatan riwayat kronologis pembaruan HPP rata-rata bergerak (*Moving Weighted Average Cost audit trail*).
+
+| Kolom | Tipe Data | Nullable | Keterangan / Constraint |
+|---|---|:---:|---|
+| `id` | `BIGINT UNSIGNED` | Tidak | Primary Key, Auto Increment |
+| `product_id` | `BIGINT UNSIGNED` | Tidak | Foreign Key -> `products.id` (**`ON DELETE RESTRICT`**) |
+| `reference_type`| `VARCHAR(100)` | Tidak | Modul transaksi pembaru (`purchase_receipts`, `sales_returns`, `sales`, dll) |
+| `reference_id` | `BIGINT UNSIGNED` | Ya | ID transaksi pembaru |
+| `reference_number`| `VARCHAR(100)` | Ya | Nomor dokumen transaksi pembaru |
+| `qty_before` | `DECIMAL(15,3)` | Tidak | Kuantitas persediaan sebelum perubahan |
+| `cost_before` | `DECIMAL(15,2)` | Tidak | Rata-rata HPP sebelum perubahan |
+| `qty_after` | `DECIMAL(15,3)` | Tidak | Kuantitas persediaan sesudah perubahan |
+| `cost_after` | `DECIMAL(15,2)` | Tidak | Rata-rata HPP baru yang disahkan |
+| `reason` | `VARCHAR(255)` | Ya | Alasan penyesuaian / kalkulasi HPP |
+| `effective_at` | `TIMESTAMP` | Tidak | Tanggal dan waktu efektivitas HPP |
+| `created_by` | `BIGINT UNSIGNED` | Ya | Foreign Key -> `users.id` (**`ON DELETE RESTRICT`**) |
+| `created_at` | `TIMESTAMP` | Tidak | Waktu rekaman dibuat |
+
+**Indeks:**
+- `INDEX (product_id, effective_at)` (`idx_cost_hist_prod_effective`)
+- `INDEX (reference_type, reference_id)` (`idx_cost_hist_reference`)
+
+**CHECK Constraints (MySQL 8.0+ / InnoDB):**
+- `cost_before >= 0`, `cost_after >= 0`
+- `qty_before >= 0`, `qty_after >= 0`

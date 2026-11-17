@@ -169,15 +169,14 @@ class ProductController extends Controller
 
     public function destroy(Request $request, Product $product): RedirectResponse|JsonResponse
     {
-        // Deletion guard: Check if referenced by transactions or price history
-        if ($product->priceHistories()->count() > 1) {
+        // Deletion guard: Check if referenced by transactions, price history, or stock movements
+        if ($product->priceHistories()->count() > 1 || $product->stockMovements()->count() > 0) {
+            $msg = 'Produk memiliki riwayat harga atau mutasi stok dan tidak dapat dihapus permanen. Gunakan nonaktifkan produk.';
             if ($request->wantsJson()) {
-                return response()->json([
-                    'message' => 'Produk memiliki riwayat perubahan harga historis dan tidak dapat dihapus permanen. Gunakan nonaktifkan produk.',
-                ], 409);
+                return response()->json(['message' => $msg], 409);
             }
 
-            return back()->with('error', 'Produk memiliki riwayat perubahan harga historis dan tidak dapat dihapus permanen. Gunakan opsi nonaktifkan produk.')->setStatusCode(409);
+            return back()->with('error', $msg)->setStatusCode(409);
         }
 
         $oldValues = $product->only(['sku', 'barcode', 'name', 'selling_price']);
@@ -240,7 +239,7 @@ class ProductController extends Controller
             ->whereHas('category', fn ($q) => $q->where('is_active', true))
             ->whereHas('unit', fn ($q) => $q->where('is_active', true))
             ->search($query)
-            ->with(['category:id,name', 'unit:id,name,symbol,decimal_precision'])
+            ->with(['category:id,name', 'unit:id,name,symbol,decimal_precision', 'inventoryBalance'])
             ->limit(20)
             ->get();
 
@@ -254,6 +253,11 @@ class ProductController extends Controller
                 'category_name' => $p->category?->name,
                 'unit_symbol' => $p->unit?->symbol,
                 'decimal_precision' => $p->unit?->decimal_precision ?? 0,
+                'quantity_on_hand' => $p->quantity_on_hand,
+                'quantity_reserved' => $p->quantity_reserved,
+                'available_quantity' => $p->available_quantity,
+                'stock_status' => $p->stock_status,
+                'stock_status_label' => $p->stock_status_label,
                 'is_sellable' => $p->isSellable(),
             ];
         });

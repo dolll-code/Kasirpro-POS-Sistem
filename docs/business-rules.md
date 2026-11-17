@@ -2,7 +2,7 @@
 
 | Metadata | Nilai |
 |---|---|
-| Status | **Diimplementasikan (Tahap 01, 02 & 03)** |
+| Status | **Diimplementasikan (Tahap 01, 02, 03 & 04)** |
 | Dokumen Induk | `prd.md` (§6, §8, §22.1) |
 | Terakhir Ditinjau | 2026-11-17 |
 
@@ -48,3 +48,37 @@ Dokumen ini mendefinisikan seluruh invariant dan aturan bisnis resmi aplikasi Ka
 | **BR-MASTER-09** | Kunci Saldo Pembukaan Akun Kas/Bank | Saldo awal akun kas atau bank hanya diinput saat pembuatan akun baru dan tidak dapat diubah langsung pada form edit demi menjaga integritas rekonsiliasi kas. | `CashAccountTest` |
 | **BR-MASTER-10** | Larangan Hapus Data Terikat (*Referential Guard*) | Entitas master (kategori, satuan, produk, pemasok, akun kas) yang telah memiliki relasi referensi ke transaksi atau riwayat dilarang dihapus permanen (`ON DELETE RESTRICT` / HTTP 409 Conflict). | `CategoryTest`, `UnitTest`, `ProductTest`, `CashAccountTest` |
 | **BR-MASTER-11** | Profil Tunggal & Standar Lebar Struk | Sistem toko beroperasi dengan satu profil aktif (DEC-01) dengan dukungan printer thermal kasir ukuran 58 mm (standar 32 kolom) atau 80 mm (lebar 48 kolom). | `StoreProfileTest` |
+
+---
+
+## 4. Domain Persediaan & Stok (`BR-STOCK-*`)
+
+| Rule ID | Nama Aturan | Definisi Perilaku & Invariant | Pengujian Otomatis |
+|---|---|---|---|
+| **BR-STOCK-01** | Proyeksi Saldo Terisolasi per Produk | Setiap produk memiliki tepat satu baris `inventory_balances`. Saldo fisik (`quantity_on_hand`) dan cadangan (`quantity_reserved`) wajib non-negatif (&ge; 0). Nilai cadangan tidak boleh melampaui saldo fisik (`reserved <= on_hand`). | `InventoryServiceTest`, `InventoryConcurrencyTest` |
+| **BR-STOCK-02** | Buku Besar Persediaan Bersifat Kekal (*Append-Only*) | Seluruh mutasi masuk dan keluar dicatat pada tabel `stock_movements`. Baris mutasi persediaan dilarang keras diubah (*update*) maupun dihapus (*delete*). Koreksi operasional wajib dilakukan melalui dokumen mutasi penyesuaian baru. | `InventoryServiceTest` |
+| **BR-STOCK-03** | Pencegahan Saldo Stok Tersedia Negatif | Kuantitas tersedia dihitung sebagai `available = on_hand - reserved`. Permintaan pengurangan stok atau reservasi yang melebihi stok tersedia ditolak seketika dengan `InsufficientStockException` (HTTP 409) tanpa mengubah saldo proyeksi. | `InventoryServiceTest`, `InventoryConcurrencyTest` |
+| **BR-STOCK-04** | Penahanan Stok Reservasi Transaksi (*Stock Hold*) | Checkout pembayaran transfer manual menahan stok fisik ke dalam status `quantity_reserved`. Stok tidak dipotong secara fisik sampai verifikasi pembayaran disahkan oleh Supervisor/Admin. Pembatalan/kedaluwarsa melepaskan reservasi kembali ke saldo tersedia. | `InventoryServiceTest` |
+| **BR-STOCK-05** | Indikator Status Ketersediaan Stok | Kategori status stok dievaluasi secara dinamis: **Habis** (*Out of Stock*) jika `on_hand = 0`; **Menipis** (*Low Stock*) jika `0 < on_hand <= minimum_stock`; **Tersedia** (*Available*) jika `on_hand > minimum_stock`. | `InventoryServiceTest` |
+| **BR-STOCK-06** | Penguncian Baris Pesimistik (*Pessimistic Locking*) | Seluruh mutasi persediaan dieksekusi di dalam transaksi database (`DB::transaction`) dengan mengunci baris saldo menggunakan klausa `SELECT ... FOR UPDATE` untuk mencegah kondisi *race condition* dan penjualan berlebih saat lonjakan kasir. | `InventoryConcurrencyTest` |
+| **BR-STOCK-07** | Rekonsiliasi Saldo terhadap Buku Besar | Saldo persediaan pada `inventory_balances` harus 100% cocok dengan hasil kalkulasi akumulasi audit: `sum(quantity_in) - sum(quantity_out)`. Sistem menyediakan fungsi audit `reconcile()` untuk memverifikasi konsistensi saldo. | `InventoryServiceTest`, `InventoryControllerTest` |
+
+---
+
+## 5. Domain Kalkulasi HPP Rata-Rata Bergerak (`BR-COST-*`)
+
+| Rule ID | Nama Aturan | Definisi Perilaku & Invariant | Pengujian Otomatis |
+|---|---|---|---|
+| **BR-COST-01** | Rumus Moving Weighted Average Cost (MAC) | HPP baru dihitung secara otomatis saat penerimaan barang disahkan (*receipt accepted*) menggunakan rumus matematika desimal presisi tinggi: `new_average_cost = ((Q × C) + (q_in × c_in)) / (Q + q_in)`. Dilarang memakai tipe bawaan floating-point. | `MovingAverageCostTest` |
+| **BR-COST-02** | Snapshot HPP Penjualan (COGS Isolation) | Transaksi penjualan mengambil snapshot nilai rata-rata HPP aktif saat transaksi disahkan. Perubahan harga beli di masa depan pada penerimaan barang baru tidak akan mengubah nilai HPP historis yang sudah tercatat pada item penjualan. | `MovingAverageCostTest` |
+| **BR-COST-03** | Penyetelan HPP Saldo Nol | Apabila transaksi penjualan menyebabkan saldo fisik menjadi nol (`on_hand = 0`), nilai `average_cost` pada saldo proyeksi disetel menjadi `0.00`, namun riwayat audit HPP sebelumnya tetap dipertahankan utuh pada `product_cost_histories`. | `MovingAverageCostTest` |
+| **BR-COST-04** | Pemulihan HPP Retur Layak Jual | Retur penjualan dengan kondisi barang layak jual (*resellable*) menambah kembali stok fisik dan menghitung ulang HPP rata-rata menggunakan HPP snapshot historis saat penjualan: `C_new = ((Q × C) + (r × hist_cost)) / (Q + r)`. | `MovingAverageCostTest` |
+| **BR-COST-05** | Penanganan Retur Barang Rusak (*Damaged Return*) | Retur dengan kondisi rusak (*damaged*) tidak menambah stok fisik yang tersedia dan tidak membalikkan nilai HPP persediaan. Nilai retur rusak dicatat secara terpisah sebagai kerugian operasional (*damaged return loss*). | `MovingAverageCostTest` |
+
+---
+
+## 6. Domain Penomoran Dokumen Transaksi (`BR-SEQ-*`)
+
+| Rule ID | Nama Aturan | Definisi Perilaku & Invariant | Pengujian Otomatis |
+|---|---|---|---|
+| **BR-SEQ-01** | Penomoran Dokumen Atomik & Anti-Duplikasi | Penomoran dokumen transaksi toko (`TRX`, `PO`, `RCV`, `RET`, `EXP`, `SO`, `ADJ`) dikelola secara atomik melalui tabel `document_sequences` dengan penguncian baris (`lockForUpdate`). Format baku: `{KODE}-{YYYYMMDD}-{00001}` (5 digit padding). Dilarang memakai `MAX(id)+1`. | `DocumentSequenceTest`, `InventoryConcurrencyTest` |

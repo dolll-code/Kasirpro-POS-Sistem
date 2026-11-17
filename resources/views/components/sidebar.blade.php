@@ -132,6 +132,23 @@
                                 </li>
                             @endif
                         @endif
+
+                        <!-- Inventory Links (Mobile) -->
+                        @if($user && $user->hasPermission('inventory.view'))
+                            <li class="pt-2 border-t border-white/10">
+                                <span class="text-xs font-semibold uppercase text-slate-400">Persediaan</span>
+                            </li>
+                            <li>
+                                <a href="{{ route('inventory.index') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('inventory.index') || request()->routeIs('inventory.card') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2 text-sm font-medium">
+                                    Saldo & Kartu Stok
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ route('inventory.low_stock') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('inventory.low_stock') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2 text-sm font-medium">
+                                    Stok Habis & Menipis
+                                </a>
+                            </li>
+                        @endif
                     </ul>
                 </nav>
             </div>
@@ -243,6 +260,29 @@
                             Profil Toko & Struk
                         </a>
                     @endif
+                </div>
+            @endif
+
+            <!-- Section Label: Persediaan & Stok (FR-INV-02..07) -->
+            @if($user && $user->hasPermission('inventory.view'))
+                <div class="pt-5 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    Persediaan & Stok
+                </div>
+
+                <div class="space-y-0.5">
+                    <a href="{{ route('inventory.index') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md {{ request()->routeIs('inventory.index') || request()->routeIs('inventory.card') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">
+                        <svg class="mr-3 h-5 w-5 shrink-0 {{ request()->routeIs('inventory.index') ? 'text-white' : 'text-slate-400 group-hover:text-slate-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        Saldo & Kartu Stok
+                    </a>
+
+                    <a href="{{ route('inventory.low_stock') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md {{ request()->routeIs('inventory.low_stock') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">
+                        <svg class="mr-3 h-5 w-5 shrink-0 {{ request()->routeIs('inventory.low_stock') ? 'text-white' : 'text-slate-400 group-hover:text-slate-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        Stok Habis & Menipis
+                    </a>
                 </div>
             @endif
 

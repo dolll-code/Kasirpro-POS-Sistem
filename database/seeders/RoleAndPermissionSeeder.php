@@ -174,7 +174,6 @@ class RoleAndPermissionSeeder extends Seeder
             'sales.discount.within_limit',
             'sales.view_own',
             'returns.request',
-            'inventory.view',
         ];
 
         $cashierIds = [];
