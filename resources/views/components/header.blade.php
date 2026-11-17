@@ -5,13 +5,13 @@
     $initials = $user ? strtoupper(substr($user->name, 0, 2)) : 'KP';
 @endphp
 
-<header class="bg-white border-b border-slate-200 sticky top-0 z-30 flex-shrink-0">
+<header class="bg-white/95 border-b border-slate-200/80 sticky top-0 z-30 flex-shrink-0">
     <div class="px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         <!-- Left: Mobile menu button & Page Title -->
         <div class="flex items-center gap-3">
             <button type="button" 
                     @click="sidebarOpen = true" 
-                    class="md:hidden -ml-2 p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    class="md:hidden -ml-2 p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-600">
                 <span class="sr-only">Buka menu sidebar</span>
                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -25,7 +25,7 @@
             @else
                 <div class="flex items-center gap-2">
                     <span class="text-base font-semibold text-slate-700">KasirPro POS System</span>
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200/60">Single-Store MVP</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-800 border border-slate-300/60">Single-Store MVP</span>
                 </div>
             @endif
         </div>
@@ -45,8 +45,8 @@
                 <div class="relative" x-data="{ open: false }" @click.away="open = false">
                     <button type="button" 
                             @click="open = !open" 
-                            class="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <div class="h-8 w-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                    class="flex items-center gap-2.5 p-1.5 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-600">
+                        <div class="h-8 w-8 rounded-full bg-[#354765] text-white flex items-center justify-center font-semibold text-xs">
                             {{ $initials }}
                         </div>
                         <div class="hidden md:block text-left">
@@ -67,17 +67,17 @@
                          x-transition:leave="transition ease-in duration-75"
                          x-transition:leave-start="transform opacity-100 scale-100"
                          x-transition:leave-end="transform opacity-0 scale-95"
-                         class="absolute right-0 mt-2 w-52 rounded-xl bg-white shadow-xl ring-1 ring-slate-900/10 py-1 focus:outline-none z-50 border border-slate-100">
+                         class="absolute right-0 mt-2 w-52 rounded-lg bg-white shadow-md ring-1 ring-slate-900/10 py-1 focus:outline-none z-50 border border-slate-100">
                         <div class="px-4 py-2.5 border-b border-slate-100">
                             <p class="text-xs font-medium text-slate-500">Masuk sebagai:</p>
                             <p class="text-xs font-bold text-slate-800 truncate">{{ $user->name }}</p>
-                            <span class="inline-block mt-0.5 text-[10px] font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-200">
+                            <span class="inline-block mt-0.5 text-[10px] font-mono text-slate-700 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-300">
                                 {{ $user->role?->code }}
                             </span>
                         </div>
 
                         <div class="py-1">
-                            <a href="{{ route('profile.show') }}" class="flex items-center px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-indigo-600 gap-2">
+                            <a href="{{ route('profile.show') }}" class="flex items-center px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-700 gap-2">
                                 <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                 </svg>
@@ -85,7 +85,7 @@
                             </a>
 
                             @if($user->hasPermission('users.manage'))
-                                <a href="{{ route('users.index') }}" class="flex items-center px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-indigo-600 gap-2">
+                                <a href="{{ route('users.index') }}" class="flex items-center px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-700 gap-2">
                                     <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                     </svg>
@@ -108,7 +108,7 @@
                     </div>
                 </div>
             @else
-                <a href="{{ route('login') }}" class="text-xs font-medium text-indigo-600 hover:text-indigo-800">
+                <a href="{{ route('login') }}" class="text-xs font-medium text-slate-700 hover:text-slate-900">
                     Masuk
                 </a>
             @endauth

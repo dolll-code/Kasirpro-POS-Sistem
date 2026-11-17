@@ -10,3 +10,28 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+@layer base {
+    :root {
+        color-scheme: light;
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+        background-color: #f6f7f8;
+    }
+
+    ::selection {
+        background: #dfe6f4;
+        color: #243653;
+    }
+}
+
+@layer components {
+    [x-cloak] {
+        display: none !important;
+    }
+}

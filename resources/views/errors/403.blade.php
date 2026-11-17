@@ -9,7 +9,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="h-full flex items-center justify-center p-4 sm:p-6 lg:p-8 font-sans antialiased text-slate-800">
-    <div class="w-full max-w-lg text-center bg-white rounded-2xl p-8 sm:p-10 shadow-xl border border-slate-200">
+    <div class="w-full max-w-lg text-center bg-white rounded-lg p-8 sm:p-10 border border-slate-200">
         <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-100 text-rose-600 mb-5 shadow-xs">
             <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -36,7 +36,7 @@
         @endif
 
         <div class="mt-8 flex justify-center gap-3">
-            <a href="{{ url('/') }}" class="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition shadow-sm">
+            <a href="{{ url('/') }}" class="inline-flex items-center px-4 py-2 rounded-md bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition">
                 Kembali ke Beranda
             </a>
             @auth

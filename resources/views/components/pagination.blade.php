@@ -47,7 +47,7 @@
                     </span>
                 @endif
 
-                <span class="relative inline-flex items-center px-3 py-1.5 text-xs font-semibold text-indigo-600 ring-1 ring-inset ring-indigo-300 bg-indigo-50 focus:z-20">
+                <span class="relative inline-flex items-center px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-400 bg-slate-100 focus:z-20">
                     {{ $currentPage }}
                 </span>
 

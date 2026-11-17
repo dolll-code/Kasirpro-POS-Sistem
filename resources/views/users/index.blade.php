@@ -14,7 +14,7 @@
             <p class="text-xs text-slate-500 mt-1">Kelola akun staf toko, penugasan peran (Admin, Supervisor, Kasir), dan status aktif.</p>
         </div>
         <div class="shrink-0">
-            <a href="{{ route('users.create') }}" class="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition shadow-sm gap-2">
+            <a href="{{ route('users.create') }}" class="inline-flex items-center justify-center px-4 py-2 rounded-md bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition gap-2">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
@@ -93,7 +93,7 @@
                         <x-table.td>
                             @php
                                 $roleBadge = [
-                                    'admin' => 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                                    'admin' => 'bg-slate-100 text-slate-700 border-slate-300',
                                     'supervisor' => 'bg-amber-50 text-amber-700 border-amber-200',
                                     'cashier' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
                                 ][$user->role?->code] ?? 'bg-slate-50 text-slate-700 border-slate-200';
@@ -123,10 +123,10 @@
 
                         <x-table.td align="right">
                             <div class="flex items-center justify-end gap-2">
-                                <a href="{{ route('users.show', $user) }}" class="text-xs font-medium text-slate-600 hover:text-indigo-600 p-1.5 rounded-lg hover:bg-slate-100" title="Detail Pengguna">
+                                <a href="{{ route('users.show', $user) }}" class="text-xs font-medium text-slate-600 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100" title="Detail Pengguna">
                                     Detail
                                 </a>
-                                <a href="{{ route('users.edit', $user) }}" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 p-1.5 rounded-lg hover:bg-indigo-50" title="Ubah Pengguna">
+                                <a href="{{ route('users.edit', $user) }}" class="text-xs font-medium text-slate-700 hover:text-slate-900 p-1.5 rounded-lg hover:bg-slate-100" title="Ubah Pengguna">
                                     Ubah
                                 </a>
 

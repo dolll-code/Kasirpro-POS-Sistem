@@ -19,7 +19,7 @@
         </a>
     </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+    <div class="bg-white rounded-lg border border-slate-200 p-6 sm:p-8">
         <form method="POST" action="{{ route('users.update', $user) }}" class="space-y-5">
             @csrf
             @method('PUT')
@@ -58,7 +58,7 @@
 
             <div class="pt-2">
                 <label class="flex items-center text-xs text-slate-700 cursor-pointer select-none">
-                    <input type="checkbox" name="is_active" value="1" {{ old('is_active', $user->is_active) ? 'checked' : '' }} class="rounded border-slate-300 text-indigo-600 shadow-xs focus:ring-indigo-500 mr-2" {{ auth()->id() === $user->id ? 'disabled' : '' }}>
+                    <input type="checkbox" name="is_active" value="1" {{ old('is_active', $user->is_active) ? 'checked' : '' }} class="rounded border-slate-300 text-slate-700 shadow-xs focus:ring-slate-600 mr-2" {{ auth()->id() === $user->id ? 'disabled' : '' }}>
                     Status akun aktif (dapat login ke sistem)
                 </label>
                 @if(auth()->id() === $user->id)

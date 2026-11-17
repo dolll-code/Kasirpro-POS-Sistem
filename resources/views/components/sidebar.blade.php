@@ -16,7 +16,7 @@
          x-transition:leave="transition-opacity ease-linear duration-300"
          x-transition:leave-start="opacity-100"
          x-transition:leave-end="opacity-0"
-         class="fixed inset-0 bg-slate-900/80"></div>
+             class="fixed inset-0 bg-slate-950/45"></div>
 
     <div class="fixed inset-0 flex">
         <div x-show="sidebarOpen"
@@ -40,15 +40,15 @@
             </div>
 
             <!-- Mobile Sidebar content -->
-            <div class="flex grow flex-col gap-y-5 overflow-y-auto bg-slate-900 px-6 pb-4">
-                <div class="flex h-16 shrink-0 items-center border-b border-slate-800 gap-2">
-                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white font-bold text-lg">K</span>
-                    <span class="text-xl font-bold tracking-tight text-white">Kasir<span class="text-indigo-400">Pro</span></span>
+            <div class="flex grow flex-col gap-y-5 overflow-y-auto bg-[#202b3b] px-6 pb-4">
+                <div class="flex h-16 shrink-0 items-center border-b border-white/10 gap-2">
+                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-slate-600 text-white font-bold text-lg">K</span>
+                    <span class="text-xl font-bold tracking-tight text-white">Kasir<span class="text-slate-300">Pro</span></span>
                 </div>
                 <nav class="flex flex-1 flex-col">
                     <ul role="list" class="flex flex-1 flex-col gap-y-4">
                         <li>
-                            <a href="{{ route('dashboard') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('dashboard') ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800' }} p-2 text-sm font-semibold">
+                            <a href="{{ route('dashboard') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('dashboard') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2.5 text-sm font-medium">
                                 <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
                                 </svg>
@@ -58,7 +58,7 @@
 
                         @if($user && $user->hasPermission('users.manage'))
                             <li>
-                                <a href="{{ route('users.index') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('users.*') ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800' }} p-2 text-sm font-semibold">
+                                <a href="{{ route('users.index') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('users.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2.5 text-sm font-medium">
                                     <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                     </svg>
@@ -68,7 +68,7 @@
                         @endif
 
                         <li>
-                            <a href="{{ route('profile.show') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('profile.*') ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800' }} p-2 text-sm font-semibold">
+                            <a href="{{ route('profile.show') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('profile.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2.5 text-sm font-medium">
                                 <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                 </svg>
@@ -83,20 +83,20 @@
 </div>
 
 <!-- Static sidebar for desktop -->
-<aside class="hidden md:flex md:w-64 md:flex-col md:inset-y-0 shrink-0 bg-slate-900 border-r border-slate-800">
+<aside class="hidden md:flex md:w-64 md:flex-col md:inset-y-0 shrink-0 bg-[#26313f] border-r border-slate-700/60">
     <div class="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
         <!-- Brand Header -->
         <div class="flex items-center flex-shrink-0 px-6 gap-2.5">
-            <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white font-bold text-lg shadow-sm">K</span>
+            <span class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-slate-600 text-white font-bold text-lg">K</span>
             <div>
-                <span class="text-xl font-bold tracking-tight text-white">Kasir<span class="text-indigo-400">Pro</span></span>
+                <span class="text-xl font-bold tracking-tight text-white">Kasir<span class="text-slate-300">Pro</span></span>
                 <span class="block text-[11px] font-medium text-slate-400 leading-none">Sistem Retail POS</span>
             </div>
         </div>
 
         <!-- Navigation Menu -->
         <nav class="mt-8 flex-1 px-4 space-y-1">
-            <a href="{{ route('dashboard') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('dashboard') ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+            <a href="{{ route('dashboard') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-md {{ request()->routeIs('dashboard') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">
                 <svg class="mr-3 h-5 w-5 shrink-0 {{ request()->routeIs('dashboard') ? 'text-white' : 'text-slate-400 group-hover:text-slate-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
                 </svg>
@@ -108,7 +108,7 @@
                 <div class="pt-4 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                     Administrasi
                 </div>
-                <a href="{{ route('users.index') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('users.*') ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <a href="{{ route('users.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-md {{ request()->routeIs('users.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">
                     <svg class="mr-3 h-5 w-5 shrink-0 {{ request()->routeIs('users.*') ? 'text-white' : 'text-slate-400 group-hover:text-slate-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
@@ -177,13 +177,13 @@
 
         <!-- Current User Role Box -->
         <div class="px-4 mt-auto">
-            <div class="rounded-lg bg-slate-800/80 p-3 border border-slate-700/60">
+            <div class="rounded-md bg-white/5 p-3 border border-white/10">
                 <div class="flex items-center gap-2">
                     <span class="inline-block h-2 w-2 rounded-full {{ $user?->is_active ? 'bg-emerald-400' : 'bg-rose-400' }}"></span>
                     <span class="text-xs font-semibold text-slate-300 truncate">{{ $user?->name ?? 'Tamu' }}</span>
                 </div>
                 <p class="mt-1 text-[11px] text-slate-400 leading-tight">
-                    Peran: <strong class="text-indigo-400">{{ $user?->role?->name ?? 'None' }}</strong>
+                    Peran: <strong class="text-slate-300">{{ $user?->role?->name ?? 'None' }}</strong>
                 </p>
             </div>
         </div>

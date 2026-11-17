@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full bg-slate-50">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full bg-[#f6f7f8]">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -33,7 +33,7 @@
             @endisset
 
             <!-- Page Body -->
-            <main class="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6">
+            <main class="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
                 <!-- Flash Messages -->
                 <x-flash-message />
 

@@ -13,7 +13,7 @@
     </div>
 
     <!-- User Information Card -->
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-4">
+    <div class="bg-white rounded-lg border border-slate-200 p-6 sm:p-8 space-y-4">
         <h2 class="text-base font-semibold text-slate-900 border-b border-slate-100 pb-3">Informasi Akun</h2>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -30,7 +30,7 @@
             <div>
                 <span class="text-slate-500 font-medium">Peran Akses</span>
                 <div class="mt-0.5">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-300">
                         {{ $user->role?->name }} ({{ $user->role?->code }})
                     </span>
                 </div>
@@ -46,7 +46,7 @@
     </div>
 
     <!-- Change Password Form (FR-AUTH-05) -->
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-5">
+    <div class="bg-white rounded-lg border border-slate-200 p-6 sm:p-8 space-y-5">
         <div>
             <h2 class="text-base font-semibold text-slate-900">Ubah Kata Sandi</h2>
             <p class="text-xs text-slate-500 mt-0.5">Pastikan akun Anda menggunakan kata sandi yang kuat dan aman minimal 8 karakter.</p>

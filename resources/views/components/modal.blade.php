@@ -44,7 +44,7 @@
              x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
              x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
              @click.away="show = false"
-             class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-xl transition-all sm:my-8 w-full {{ $maxWidthClasses }} border border-slate-200">
+             class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-lg transition-all sm:my-8 w-full {{ $maxWidthClasses }} border border-slate-200">
 
             <!-- Modal Header -->
             <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">

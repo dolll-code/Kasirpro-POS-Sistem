@@ -8,10 +8,10 @@
 @section('content')
 <div class="space-y-8 max-w-7xl mx-auto">
     <!-- Header Banner -->
-    <div class="rounded-2xl bg-gradient-to-r from-indigo-900 via-slate-900 to-slate-900 p-6 sm:p-8 text-white shadow-md border border-slate-800">
+    <div class="rounded-xl bg-slate-800 p-6 sm:p-8 text-white border border-slate-700">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-                <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-semibold uppercase tracking-wider mb-3">
+                <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-white/10 text-slate-200 border border-white/15 text-xs font-semibold uppercase tracking-wider mb-3">
                     <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
                     Tahap 01 Selesai
                 </div>
@@ -21,13 +21,13 @@
                 </p>
             </div>
             <div class="shrink-0 flex flex-wrap gap-2">
-                <span class="inline-flex items-center px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs font-mono text-slate-300">
+                <span class="inline-flex items-center px-3 py-1.5 rounded-md bg-slate-700 border border-slate-600 text-xs font-mono text-slate-200">
                     PHP {{ PHP_VERSION }}
                 </span>
-                <span class="inline-flex items-center px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs font-mono text-slate-300">
+                <span class="inline-flex items-center px-3 py-1.5 rounded-md bg-slate-700 border border-slate-600 text-xs font-mono text-slate-200">
                     Laravel {{ app()->version() }}
                 </span>
-                <span class="inline-flex items-center px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs font-mono text-slate-300">
+                <span class="inline-flex items-center px-3 py-1.5 rounded-md bg-slate-700 border border-slate-600 text-xs font-mono text-slate-200">
                     MySQL 8.0 (InnoDB)
                 </span>
             </div>
@@ -39,7 +39,7 @@
         <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs">
             <div class="flex items-center justify-between text-slate-500 mb-2">
                 <span class="text-xs font-semibold uppercase tracking-wider">Database Engine</span>
-                <svg class="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7c0-2-1.5-3-3.5-3h-9C5.5 4 4 5 4 7z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6" />
                 </svg>
@@ -51,7 +51,7 @@
         <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs">
             <div class="flex items-center justify-between text-slate-500 mb-2">
                 <span class="text-xs font-semibold uppercase tracking-wider">Timezone Bisnis</span>
-                <svg class="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </div>
@@ -62,7 +62,7 @@
         <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs">
             <div class="flex items-center justify-between text-slate-500 mb-2">
                 <span class="text-xs font-semibold uppercase tracking-wider">Decimal Aritmatika</span>
-                <svg class="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
             </div>
@@ -73,7 +73,7 @@
         <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs">
             <div class="flex items-center justify-between text-slate-500 mb-2">
                 <span class="text-xs font-semibold uppercase tracking-wider">Frontend Engine</span>
-                <svg class="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                 </svg>
             </div>
@@ -193,7 +193,7 @@
         <x-table.card title="3. Table & Pagination Presentation" 
                       description="Komponen tabel data terstruktur dengan header styling, badge status, dan pagination baris.">
             <x-slot:actions>
-                <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 text-xs font-medium border border-indigo-200/60">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
                     Contoh Data Presentation
                 </span>
             </x-slot:actions>
@@ -210,7 +210,7 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100 bg-white">
                     <tr class="hover:bg-slate-50/70 transition-colors">
-                        <x-table.td class="font-mono font-medium text-indigo-600">TRX-20261117-00001</x-table.td>
+                        <x-table.td class="font-mono font-medium text-slate-700">TRX-20261117-00001</x-table.td>
                         <x-table.td>Penjualan POS (Tunai)</x-table.td>
                         <x-table.td align="right" class="font-semibold text-slate-900">Rp 125.000,00</x-table.td>
                         <x-table.td align="center">
@@ -221,7 +221,7 @@
                         <x-table.td align="right" class="text-xs text-slate-500">17 Nov 2026, 12:30</x-table.td>
                     </tr>
                     <tr class="hover:bg-slate-50/70 transition-colors">
-                        <x-table.td class="font-mono font-medium text-indigo-600">TRX-20261117-00002</x-table.td>
+                        <x-table.td class="font-mono font-medium text-slate-700">TRX-20261117-00002</x-table.td>
                         <x-table.td>Penjualan POS (Transfer Manual)</x-table.td>
                         <x-table.td align="right" class="font-semibold text-slate-900">Rp 450.000,00</x-table.td>
                         <x-table.td align="center">
@@ -232,11 +232,11 @@
                         <x-table.td align="right" class="text-xs text-slate-500">17 Nov 2026, 12:45</x-table.td>
                     </tr>
                     <tr class="hover:bg-slate-50/70 transition-colors">
-                        <x-table.td class="font-mono font-medium text-indigo-600">PO-20261117-00001</x-table.td>
+                        <x-table.td class="font-mono font-medium text-slate-700">PO-20261117-00001</x-table.td>
                         <x-table.td>Penerimaan Barang Pemasok</x-table.td>
                         <x-table.td align="right" class="font-semibold text-slate-900">Rp 2.750.000,00</x-table.td>
                         <x-table.td align="center">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
                                 Accepted
                             </span>
                         </x-table.td>

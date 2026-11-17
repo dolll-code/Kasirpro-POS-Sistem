@@ -10,7 +10,7 @@
 <div class="max-w-4xl mx-auto space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="flex items-center gap-4">
-            <div class="h-14 w-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xl uppercase shadow-md shadow-indigo-600/20">
+            <div class="h-14 w-14 rounded-lg bg-slate-700 text-white flex items-center justify-center font-semibold text-xl uppercase">
                 {{ substr($user->name, 0, 2) }}
             </div>
             <div>
@@ -20,7 +20,7 @@
         </div>
 
         <div class="flex items-center gap-2">
-            <a href="{{ route('users.edit', $user) }}" class="inline-flex items-center px-3.5 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition shadow-sm gap-1.5">
+            <a href="{{ route('users.edit', $user) }}" class="inline-flex items-center px-3.5 py-2 rounded-md bg-slate-800 text-white text-xs font-semibold hover:bg-slate-700 transition gap-1.5">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
@@ -45,7 +45,7 @@
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Peran (Role)</span>
             <div class="mt-1 flex items-center gap-2">
                 <span class="text-base font-bold text-slate-900">{{ $user->role?->name }}</span>
-                <span class="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                <span class="text-xs font-mono text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-300">
                     {{ $user->role?->code }}
                 </span>
             </div>
@@ -87,7 +87,7 @@
             @forelse($user->role?->permissions ?? [] as $perm)
                 <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs">
                     <div class="font-semibold text-slate-800">{{ $perm->name }}</div>
-                    <div class="text-[11px] font-mono text-indigo-600 mt-0.5">{{ $perm->code }}</div>
+                    <div class="text-[11px] font-mono text-slate-700 mt-0.5">{{ $perm->code }}</div>
                 </div>
             @empty
                 <div class="col-span-3 text-xs text-slate-400 py-3">Tidak ada hak akses khusus yang ditetapkan.</div>
@@ -107,7 +107,7 @@
                 <div class="px-6 py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 hover:bg-slate-50/80 transition text-xs">
                     <div>
                         <div class="flex items-center gap-2">
-                            <span class="font-mono font-semibold text-indigo-600 uppercase">{{ $log->action }}</span>
+                            <span class="font-mono font-semibold text-slate-700 uppercase">{{ $log->action }}</span>
                             <span class="text-slate-400">•</span>
                             <span class="text-slate-600">Modul: {{ $log->module }}</span>
                         </div>
