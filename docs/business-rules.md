@@ -2,7 +2,7 @@
 
 | Metadata | Nilai |
 |---|---|
-| Status | **Diimplementasikan (Tahap 01, 02, 03, 04 & 05)** |
+| Status | **Diimplementasikan (Tahap 01, 02, 03, 04, 05 & 06)** |
 | Dokumen Induk | `prd.md` (§6, §8, §22.1) |
 | Terakhir Ditinjau | 2026-11-18 |
 
@@ -96,4 +96,19 @@ Dokumen ini mendefinisikan seluruh invariant dan aturan bisnis resmi aplikasi Ka
 | **BR-CASH-05** | Jaminan Idempotensi Transaksi Sumber (*Source Uniqueness Guarantee*) | Setiap satu dokumen pembayaran transaksi (misal: pembayaran penjualan kasir, pembayaran utang pemasok, biaya operasional) hanya dapat menghasilkan tepat satu mutasi kas melalui constraint unik basis data `(source_type, source_id)`. | `CashMovementServiceTest`, `CashConcurrencyTest` |
 | **BR-CASH-06** | Prosedur Pembalikan Transaksi (*Compensating Cash Reversal*) | Pembalikan transaksi kas (*reversal*) menghasilkan baris mutasi baru bertipe `REVERSAL` dengan arah berlawanan (`in` &rarr; `out` atau `out` &rarr; `in`), mewajibkan alasan koreksi, terhubung ke transaksi asli via `reversal_of_id`, dan diproteksi unik agar tidak dapat dibalikkan dua kali. | `CashReversalTest`, `CashAccountControllerTest` |
 | **BR-CASH-07** | Penguncian Baris Kas Pesimistik (*Pessimistic Locking & Audit Consistency*) | Seluruh mutasi kas dieksekusi dalam transaksi basis data atomik (`DB::transaction`) dengan mengunci baris akun kas (`lockForUpdate`). Sistem menyediakan fungsi `reconcile()` untuk memvalidasi konsistensi 100% antara saldo terproyeksi dengan penjumlahan audit ledger. | `CashMovementServiceTest`, `CashConcurrencyTest`, `CashAccountControllerTest` |
+
+---
+
+## 8. Domain Pengadaan, Penerimaan & Pembayaran Pemasok (`BR-PUR-*`)
+
+| Rule ID | Nama Aturan | Definisi Perilaku & Invariant | Pengujian Otomatis |
+|---|---|---|---|
+| **BR-PUR-01** | Validasi Pembuatan & Integritas Dokumen PO | PO baru berstatus `draft`, memiliki nomor unik `PO-YYYYMMDD-XXXXX` atomik, mewajibkan pemasok aktif, minimal satu item barang, kuantitas > 0 sesuai presisi satuan, harga satuan &ge; 0, dan diskon baris tidak melampaui nilai kotor barang. | `PurchaseFlowTest`, `PurchaseControllerTest` |
+| **BR-PUR-02** | Alokasi Diskon Dokumen Deterministik | Diskon dokumen header dialokasikan proporsional ke setiap baris item berbasis nilai kotor dikurangi diskon baris (`MoneyCalculator::allocateProportional`). Residual pembulatan desimal dialokasikan deterministik ke baris dengan basis terbesar. | `PurchaseFlowTest` |
+| **BR-PUR-03** | Kunci Dokumen PO Terkonfirmasi | PO yang telah dikonfirmasi beralih status ke `ordered` dan dikunci dari pengeditan atau penghapusan langsung. Penambahan/perubahan item hanya dapat dilakukan saat PO berstatus `draft`. | `PurchaseFlowTest`, `PurchaseControllerTest` |
+| **BR-PUR-04** | Penutupan Sisa PO Dibatalkan | Pembatalan PO (`draft`, `ordered`, atau `partially_received`) mewajibkan alasan pembatalan. Jika sebagian barang telah diterima sah (*accepted*), barang tersebut tetap berada di inventori, dan hanya sisa kuantitas belum tiba yang ditutup/dibatalkan (`cancelled_qty`). | `PurchaseFlowTest`, `PurchaseControllerTest` |
+| **BR-PUR-05** | Validasi Fisik Penerimaan Barang | Pada setiap dokumen tanda terima (*Goods Receipt*), berlaku persamaan mutlak: `physically_received_qty = accepted_qty + rejected_qty`. Barang ditolak (*rejected*) tidak menambah stok fisik toko dan tidak mengurangi kuantitas sisa pesanan PO. Kuantitas diterima dilarang melebihi sisa pesanan (*no over-receipt*). | `PurchaseFlowTest`, `PurchaseConcurrencyTest` |
+| **BR-PUR-06** | Alokasi Landed Cost & Pembaruan Moving Average Cost | Biaya tambahan yang dapat dikapitalisasi (*capitalizable cost* seperti ongkir/asuransi) dialokasikan proporsional ke nilai barang diterima (*accepted lines*). Landed unit cost diteruskan ke `InventoryService` untuk memperbarui persediaan fisik dan HPP rata-rata bergerak (*Moving Weighted Average Cost*). | `PurchaseFlowTest` |
+| **BR-PUR-07** | Batas Maksimum Pembayaran Pemasok & Integrasi Kas | Pembayaran pemasok (*supplier payment*) dilarang melebihi nilai sisa utang yang terbentuk dari barang yang telah diterima sah (*outstanding payable*). Setiap pembayaran secara otomatis menghasilkan tepat satu pergerakan kas keluar (*cash movement out*) pada akun kas/bank yang dipilih. | `PurchaseFlowTest`, `PurchaseControllerTest`, `PurchaseConcurrencyTest` |
+
 

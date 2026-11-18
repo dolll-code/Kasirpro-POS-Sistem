@@ -149,6 +149,18 @@
                                 </a>
                             </li>
                         @endif
+
+                        <!-- Purchasing Links (Mobile) -->
+                        @if($user && ($user->hasPermission('purchases.view') || $user->hasPermission('purchases.create')))
+                            <li class="pt-2 border-t border-white/10">
+                                <span class="text-xs font-semibold uppercase text-slate-400">Pembelian</span>
+                            </li>
+                            <li>
+                                <a href="{{ route('purchases.index') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('purchases.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2 text-sm font-medium">
+                                    Daftar PO & Penerimaan
+                                </a>
+                            </li>
+                        @endif
                     </ul>
                 </nav>
             </div>
@@ -303,14 +315,13 @@
                     </span>
                 @endif
 
-                @if($user && $user->hasPermission('purchases.create'))
-                    <span class="flex items-center px-3 py-2 text-sm font-medium rounded-lg text-slate-500 opacity-70 cursor-not-allowed">
-                        <svg class="mr-3 h-5 w-5 shrink-0 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                @if($user && ($user->hasPermission('purchases.view') || $user->hasPermission('purchases.create')))
+                    <a href="{{ route('purchases.index') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md {{ request()->routeIs('purchases.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">
+                        <svg class="mr-3 h-5 w-5 shrink-0 {{ request()->routeIs('purchases.*') ? 'text-white' : 'text-slate-400 group-hover:text-slate-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                         </svg>
-                        Pengadaan (PO)
-                        <span class="ml-auto text-[10px] font-mono uppercase bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">T04</span>
-                    </span>
+                        Pembelian (PO)
+                    </a>
                 @endif
 
                 @if($user && $user->hasPermission('stock_opname.create'))

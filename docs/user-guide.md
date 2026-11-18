@@ -2,9 +2,9 @@
 
 | Metadata | Nilai |
 |---|---|
-| Modul | **Master Data Management & Pengaturan Toko** |
+| Modul | **Master Data, Buku Kas, Persediaan, & Pengadaan Barang (Tahap 06)** |
 | Target Pembaca | Pemilik Toko (Admin), Pengawas Operasional (Supervisor), Kasir |
-| Terakhir Ditinjau | 2026-11-17 |
+| Terakhir Ditinjau | 2026-11-18 |
 
 ---
 
@@ -149,4 +149,120 @@ Sesuai prinsip kepatuhan pembukuan, baris mutasi kas **tidak dapat dihapus atau 
    - Mencatat aktivitas pembalikan pada log audit sistem.
    - Menandai transaksi asli dengan lencana status *Dibalikkan*.
 4. Transaksi yang sudah pernah dibalikkan atau transaksi reversal itu sendiri dilarang untuk dibalikkan kembali.
+
+---
+
+## 10. Panduan Pengadaan Barang, Penerimaan, & Pembayaran Pemasok (`/purchases`)
+
+Modul Pengadaan KasirPro (`PRD §5.4`, `BR-PUR-01` s.d. `BR-PUR-07`) mengintegrasikan proses pembelian barang dagang, verifikasi fisik penerimaan di gudang, alokasi biaya pengiriman (*landed cost*), pembaruan otomatis Harga Pokok Penjualan (HPP Moving Weighted Average), serta pencatatan utang dan pelunasan kas pemasok secara atomik.
+
+### 10.1 Alur Siklus Transaksi Pengadaan
+
+```text
+[ Buat Draft PO ] ──> [ Konfirmasi PO ] ──> [ Penerimaan Fisik (Receipt) ] ──> [ Pembayaran Pemasok ]
+  (draft)               (ordered)             (partially_received / received)      (unpaid / partially / paid)
+     │                     │
+     └─> [ Hapus Draft ]   └─> [ Batalkan PO (Wajib Alasan) ]
+```
+
+1. **Draft:** Dokumen pesanan pembelian awal yang masih dapat diubah, ditambah, atau dikurangi itemnya secara bebas.
+2. **Ordered:** Pesanan resmi yang telah disetujui dan dikirimkan ke pihak distributor/pemasok. Formulir pesanan langsung terkunci dari penyuntingan manual.
+3. **Partially Received:** Barang telah tiba sebagian di toko/gudang dan telah dibuatkan nota penerimaan barang (*Goods Receipt Note*).
+4. **Received:** Seluruh kuantitas barang yang dipesan telah diterima secara lengkap.
+5. **Cancelled:** Pesanan dibatalkan (atau sisa kuantitas yang belum datang ditutup) disertai alasan pembatalan wajib.
+
+---
+
+### 10.2 Membuat Draft Pesanan Pembelian (Purchase Order)
+
+1. Buka menu **Pembelian (PO)** pada navigasi utama, lalu klik tombol **+ Buat PO Baru** (`/purchases/create`).
+2. **Pilih Pemasok:** Pilih distributor dari daftar pemasok aktif. (Pemasok nonaktif tidak akan muncul di daftar pilihan).
+3. **Tanggal Pesanan & Estimasi Tiba:** Tentukan tanggal diterbitkannya PO serta perkiraan tanggal pengiriman barang tiba di toko.
+4. **Rincian Barang yang Dipesan:**
+   - Klik **+ Tambah Baris Produk** untuk menambah barang yang hendak dibeli.
+   - Pilih produk dari daftar katalog barang aktif.
+   - Masukkan **Kuantitas Pesanan** (harus lebih besar dari 0, sesuai dengan toleransi presisi desimal satuan barang).
+   - Masukkan **Harga Beli Satuan (Rp)** (sebelum diskon).
+   - Masukkan **Diskon Baris (Rp)** (opsional, nilai diskon tidak boleh melebihi nilai total baris).
+5. **Diskon Dokumen / Faktur:**
+   - Masukkan diskon global faktur (jika pihak pemasok memberikan potongan harga total atas seluruh nota).
+   - Sistem secara otomatis membagi alokasi diskon global ke setiap baris barang secara proporsional menggunakan algoritma *deterministic residual rounding* tanpa pembulatan liar.
+6. **Catatan Tambahan:** Masukkan instruksi khusus pengiriman atau keterangan faktur.
+7. Klik **Simpan Draft PO**. Dokumen PO akan diterbitkan dengan format nomor urut resmi: `PO-YYYYMMDD-XXXXX`.
+
+---
+
+### 10.3 Mengonfirmasi Pesanan Pembelian
+
+- Selama berstatus **Draft**, dokumen PO dapat diperiksa ulang atau diedit rinciannya melalui tombol **Edit Draft**.
+- Jika rincian barang sudah disetujui, klik tombol **Konfirmasi Pesanan**.
+- Sistem akan mengubah status PO dari `draft` menjadi `ordered`.
+- **Proteksi Integritas:** PO yang berstatus `ordered` langsung **terkunci permanen dari pengeditan langsung** untuk mencegah manipulasi data order setelah dikirimkan ke pemasok.
+
+---
+
+### 10.4 Penerimaan Barang Fisik (Goods Receiving & Landed Cost)
+
+Ketika kurir atau armada distributor tiba di toko membawa barang:
+
+1. Buka detail PO yang bersangkutan (`/purchases/{purchase}`), lalu klik tombol **Terima Barang** (`/purchases/{purchase}/receive`).
+2. Masukkan nomor surat jalan atau nomor faktur pengantar dari pemasok pada kolom **Nomor Faktur Pemasok / DO**.
+3. **Pemeriksaan Fisik Kuantitas:**
+   - Untuk setiap baris barang yang tiba, periksa kondisi fisiknya.
+   - Masukkan kuantitas yang lolos sortir pada kolom **Diterima Layak (Accepted Qty)**.
+   - Masukkan kuantitas yang rusak/cacat/kadaluwarsa pada kolom **Ditolak (Rejected Qty)**.
+   - **Aturan Validasi Keras:** Sistem mewajibkan `Diterima + Ditolak = Total Fisik Datang`. Total yang diterima tidak boleh melebihi sisa pesanan yang belum terkirim.
+   - **Perlakuan Barang Cacat:** Barang yang ditolak (*rejected goods*) **sama sekali tidak menambah stok persediaan** dan **tidak diakui sebagai utang usaha**, melainkan dicatat permanen dalam nota penerimaan sebagai bukti klaim retur pengiriman ke pemasok.
+4. **Biaya Tambahan Pengadaan (Landed Cost):**
+   - Jika ada biaya modal tambahan (seperti ongkos kirim armada, biaya bongkar muat kuli, atau asuransi kargo), masukkan nilai nominalnya pada kolom **Biaya Tambahan / Ongkos Angkut**.
+   - Biaya ini akan dikapitalisasi ke dalam nilai perolehan barang diterima (*landed cost*) secara proporsional.
+5. Klik **Posting Penerimaan Barang**.
+
+#### Yang Terjadi Secara Otomatis di Latar Belakang (Atomic Transaction):
+- **Buku Besar Stok:** Menambahkan mutasi masuk persediaan (`IN_PURCHASE`) untuk barang yang berstatus `accepted`.
+- **Pembaruan HPP Moving Weighted Average (MWA):** Sistem menghitung ulang HPP barang secara otomatis:
+  $$\text{HPP Baru} = \frac{(Q_{\text{on-hand}} \times C_{\text{lama}}) + (q_{\text{diterima}} \times c_{\text{landed}})}{Q_{\text{on-hand}} + q_{\text{diterima}}}$$
+- **Status PO:** Jika seluruh barang pesanan sudah diterima lengkap, status PO otomatis berubah menjadi `received`. Jika baru tiba sebagian, status menjadi `partially_received`.
+- **Kekekalan Data:** Dokumen bukti penerimaan barang (*Good Receipt Note*) bersifat *append-only* (dilarang diedit atau dihapus).
+
+---
+
+### 10.5 Pembayaran Utang Pemasok (Supplier Payment)
+
+KasirPro menerapkan prinsip akuntansi kehati-hatian: **Utang usaha hanya terbentuk atas barang yang telah berstatus DITERIMA FISIK SECARA LAYAK (*accepted goods*) dari dokumen penerimaan yang sah.**
+
+1. Buka halaman detail PO terkait (`/purchases/{purchase}`).
+2. Periksa kartu status pembayaran:
+   - **Total Tagihan Barang Diterima:** Nilai landed cost dari seluruh barang yang lolos sortir.
+   - **Total Terbayar:** Akumulasi pembayaran yang sudah pernah disetorkan ke pemasok.
+   - **Sisa Utang Terbuka (Outstanding Payable):** Batas maksimal dana yang dapat dibayarkan saat ini.
+3. Klik tombol **Catat Pembayaran Pemasok** (`/purchases/{purchase}/payments/create`).
+4. **Formulir Pembayaran:**
+   - Pilih sumber rekening dana pada kolom **Akun Kas / Bank** (menampilkan saldo kas riil terkini).
+   - Pilih metode pembayaran: `Tunai (Cash)` atau `Transfer Bank (Bank Transfer)`.
+   - Masukkan nominal pembayaran pada kolom **Jumlah Bayar (Rp)**. Sistem akan menolak jika nominal melebihi sisa utang terbuka atau jika saldo kas/bank tidak mencukupi.
+   - Masukkan nomor referensi bukti transfer bank atau nomor kwitansi pembayaran.
+5. Klik **Simpan Pembayaran**.
+
+#### Dampak Pembukuan Otomatis:
+- Menerbitkan dokumen pembayaran bernomor resmi: `PAY-YYYYMMDD-XXXXX`.
+- Memotong saldo akun kas/bank yang dipilih melalui mutasi keluar buku kas (`OUT_PURCHASE_PAYMENT`).
+- Memperbarui status pembayaran PO:
+  - `unpaid`: Belum ada pembayaran sama sekali.
+  - `partially_paid`: Pembayaran sudah dicicil sebagian namun masih ada sisa utang.
+  - `paid`: Utang atas barang yang telah diterima lunas sepenuhnya.
+
+#### Pembatalan Pembayaran Pemasok (Reversal):
+- Jika terjadi kekeliruan pencatatan pembayaran (misal salah memilih rekening bank), pembayaran dapat dibatalkan melalui tombol **Batalkan Pembayaran (Reversal)** pada riwayat pembayaran detail PO.
+- Wajib mengisikan alasan pembatalan.
+- Sistem akan mengembalikan dana kas/bank secara atomik melalui mutasi penyesuaian kas dan mengembalikan status sisa utang PO seperti semula.
+
+---
+
+### 10.6 Pembatalan & Penutupan Sisa Pesanan Pembelian
+
+1. **Pembatalan Total:** Jika pesanan masih berstatus `draft` atau `ordered` dan barang belum pernah dikirimkan sama sekali, PO dapat dibatalkan sepenuhnya melalui tombol **Batalkan PO**.
+2. **Penutupan Sisa Order (Partial Cancel):** Jika sebagian barang sudah diterima namun sisa pesanan tidak dapat dikirimkan lagi oleh pihak distributor (misal stok pabrik kosong), pengguna dapat menutup sisa pesanan dengan mengklik tombol **Tutup Sisa Pesanan**.
+3. **Syarat Pembatalan:** Sistem mewajibkan pengisian **Alasan Pembatalan / Penutupan** demi keperluan audit pengawasan usaha. Sisa barang yang belum terkirim otomatis diabaikan, dan status PO ditandai sebagai `cancelled`.
+
 

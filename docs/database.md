@@ -2,7 +2,7 @@
 
 | Metadata | Nilai |
 |---|---|
-| Status | **Diimplementasikan (Tahap 05 — Selesai)** |
+| Status | **Diimplementasikan (Tahap 06 — Selesai)** |
 | Engine | **MySQL 8.0 / InnoDB** |
 | Collation | `utf8mb4_unicode_ci` |
 | Terakhir Ditinjau | 2026-11-18 |
@@ -389,4 +389,143 @@ Buku besar mutasi kas yang bersifat kekal (*append-only ledger*) yang mencatat s
 - `amount > 0` (`chk_cash_mov_amount_pos`): Nilai mutasi kas wajib positif.
 - `balance_before >= 0` (`chk_cash_mov_before_nonneg`): Saldo sebelum mutasi dilarang negatif.
 - `balance_after >= 0` (`chk_cash_mov_after_nonneg`): Saldo sesudah mutasi dilarang negatif.
+
+---
+
+## 7. Struktur Tabel Pengadaan, Penerimaan & Pembayaran Supplier (Tahap 06)
+
+### 7.1 Tabel `purchases`
+Menyimpan dokumen Purchase Order (PO) pembelian barang dagangan ke pemasok dengan pemisahan status pesanan (*order status*) dan status pelunasan (*payment status*).
+
+| Kolom | Tipe Data | Nullable | Keterangan / Constraint |
+|---|---|:---:|---|
+| `id` | `BIGINT UNSIGNED` | Tidak | Primary Key, Auto Increment |
+| `purchase_number` | `VARCHAR(100)` | Tidak | **UNIQUE** (`PO-YYYYMMDD-XXXXX`) |
+| `supplier_id` | `BIGINT UNSIGNED` | Tidak | Foreign Key -> `suppliers.id` (**`ON DELETE RESTRICT`**) |
+| `order_date` | `DATE` | Tidak | Tanggal pesanan pembelian dibuat |
+| `expected_date` | `DATE` | Ya | Estimasi tanggal kedatangan barang |
+| `subtotal` | `DECIMAL(15,2)` | Tidak | Default `0.00`, total nilai kotor item |
+| `item_discount_total` | `DECIMAL(15,2)` | Tidak | Default `0.00`, akumulasi diskon per baris item |
+| `document_discount_total` | `DECIMAL(15,2)`| Tidak | Default `0.00`, diskon header dokumen PO |
+| `additional_cost_estimate`| `DECIMAL(15,2)`| Tidak | Default `0.00`, estimasi ongkir/asuransi saat PO dibuat |
+| `payable_total` | `DECIMAL(15,2)` | Tidak | Default `0.00`, estimasi tagihan akhir PO |
+| `paid_amount` | `DECIMAL(15,2)` | Tidak | Default `0.00`, total pembayaran yang sudah diposting |
+| `status` | `VARCHAR(50)` | Tidak | Default `draft`, index (`draft`, `ordered`, `partially_received`, `received`, `cancelled`) |
+| `payment_status` | `VARCHAR(50)` | Tidak | Default `unpaid`, index (`unpaid`, `partially_paid`, `paid`) |
+| `notes` | `TEXT` | Ya | Catatan pemesanan |
+| `created_by` | `BIGINT UNSIGNED` | Tidak | Foreign Key -> `users.id` (**`ON DELETE RESTRICT`**) |
+| `confirmed_by` | `BIGINT UNSIGNED` | Ya | Foreign Key -> `users.id` (**`ON DELETE RESTRICT`**) |
+| `confirmed_at` | `TIMESTAMP` | Ya | Waktu konfirmasi dokumen PO |
+| `cancelled_by` | `BIGINT UNSIGNED` | Ya | Foreign Key -> `users.id` (**`ON DELETE RESTRICT`**) |
+| `cancelled_at` | `TIMESTAMP` | Ya | Waktu pembatalan / penutupan sisa PO |
+| `cancel_reason` | `VARCHAR(255)` | Ya | Alasan wajib pembatalan / penutupan sisa PO |
+| `created_at` / `updated_at` | `TIMESTAMP` | Ya | Waktu pencatatan & pembaruan |
+
+**Indeks:**
+- `UNIQUE (purchase_number)`
+- `INDEX (supplier_id, order_date, status)` (`idx_purchases_supp_date_status`)
+- `INDEX (status)`
+- `INDEX (payment_status)`
+
+**CHECK Constraints (MySQL 8.0+ / InnoDB):**
+- `subtotal >= 0`, `item_discount_total >= 0`, `document_discount_total >= 0`, `payable_total >= 0`, `paid_amount >= 0`
+
+---
+
+### 7.2 Tabel `purchase_items`
+Rincian baris item barang pada dokumen Purchase Order.
+
+| Kolom | Tipe Data | Nullable | Keterangan / Constraint |
+|---|---|:---:|---|
+| `id` | `BIGINT UNSIGNED` | Tidak | Primary Key, Auto Increment |
+| `purchase_id` | `BIGINT UNSIGNED` | Tidak | Foreign Key -> `purchases.id` (**`ON DELETE CASCADE`** saat draft) |
+| `product_id` | `BIGINT UNSIGNED` | Tidak | Foreign Key -> `products.id` (**`ON DELETE RESTRICT`**) |
+| `product_name_snapshot` | `VARCHAR(255)` | Tidak | Snapshot nama produk saat PO dibuat |
+| `sku_snapshot` | `VARCHAR(100)` | Tidak | Snapshot SKU produk |
+| `unit_snapshot` | `VARCHAR(50)` | Tidak | Snapshot simbol satuan produk |
+| `ordered_qty` | `DECIMAL(15,3)` | Tidak | Kuantitas pemesanan (wajib > 0) |
+| `unit_cost` | `DECIMAL(15,2)` | Tidak | Harga beli satuan (wajib >= 0) |
+| `line_discount` | `DECIMAL(15,2)` | Tidak | Default `0.00`, diskon khusus baris barang |
+| `allocated_document_discount` | `DECIMAL(15,2)` | Tidak | Default `0.00`, alokasi diskon header secara proporsional |
+| `accepted_qty_total` | `DECIMAL(15,3)` | Tidak | Default `0.000`, akumulasi fisik disetujui masuk stok |
+| `rejected_qty_total` | `DECIMAL(15,3)` | Tidak | Default `0.000`, akumulasi fisik ditolak |
+| `cancelled_qty` | `DECIMAL(15,3)` | Tidak | Default `0.000`, kuantitas sisa yang dibatalkan |
+| `line_total` | `DECIMAL(15,2)` | Tidak | Nilai bersih baris item setelah diskon |
+| `created_at` / `updated_at` | `TIMESTAMP` | Ya | Timestamps |
+
+**CHECK Constraints:**
+- `ordered_qty > 0`
+- `unit_cost >= 0`, `line_discount >= 0`, `allocated_document_discount >= 0`, `accepted_qty_total >= 0`, `rejected_qty_total >= 0`, `cancelled_qty >= 0`, `line_total >= 0`
+
+---
+
+### 7.3 Tabel `purchase_receipts`
+Dokumen tanda terima barang fisik (*Goods Receipt*) yang bersifat kekal (*append-only*).
+
+| Kolom | Tipe Data | Nullable | Keterangan / Constraint |
+|---|---|:---:|---|
+| `id` | `BIGINT UNSIGNED` | Tidak | Primary Key, Auto Increment |
+| `receipt_number` | `VARCHAR(100)` | Tidak | **UNIQUE** (`RCV-YYYYMMDD-XXXXX`) |
+| `purchase_id` | `BIGINT UNSIGNED` | Tidak | Foreign Key -> `purchases.id` (**`ON DELETE RESTRICT`**) |
+| `received_at` | `TIMESTAMP` | Tidak | Waktu kedatangan barang fisik |
+| `capitalizable_additional_cost` | `DECIMAL(15,2)` | Tidak | Default `0.00`, ongkir/asuransi yang dikapitalisasi ke HPP |
+| `status` | `VARCHAR(50)` | Tidak | Default `posted` |
+| `notes` | `TEXT` | Ya | Catatan surat jalan / pengiriman |
+| `received_by` | `BIGINT UNSIGNED` | Ya | Foreign Key -> `users.id` (**`ON DELETE RESTRICT`**) |
+| `posted_by` | `BIGINT UNSIGNED` | Ya | Foreign Key -> `users.id` (**`ON DELETE RESTRICT`**) |
+| `posted_at` | `TIMESTAMP` | Ya | Waktu posting mutasi stok dan HPP |
+| `created_at` / `updated_at` | `TIMESTAMP` | Ya | Timestamps |
+
+**CHECK Constraints:**
+- `capitalizable_additional_cost >= 0`
+
+---
+
+### 7.4 Tabel `purchase_receipt_items`
+Rincian kuantitas fisik, disetujui, ditolak, dan HPP landed per baris penerimaan barang.
+
+| Kolom | Tipe Data | Nullable | Keterangan / Constraint |
+|---|---|:---:|---|
+| `id` | `BIGINT UNSIGNED` | Tidak | Primary Key, Auto Increment |
+| `receipt_id` | `BIGINT UNSIGNED` | Tidak | Foreign Key -> `purchase_receipts.id` (**`ON DELETE CASCADE`**) |
+| `purchase_item_id` | `BIGINT UNSIGNED` | Tidak | Foreign Key -> `purchase_items.id` (**`ON DELETE RESTRICT`**) |
+| `product_id` | `BIGINT UNSIGNED` | Tidak | Foreign Key -> `products.id` (**`ON DELETE RESTRICT`**) |
+| `physically_received_qty` | `DECIMAL(15,3)` | Tidak | Kuantitas fisik yang tiba di toko |
+| `accepted_qty` | `DECIMAL(15,3)` | Tidak | Kuantitas disetujui (menambah stok fisik toko) |
+| `rejected_qty` | `DECIMAL(15,3)` | Tidak | Default `0.000`, kuantitas ditolak (tidak menambah stok) |
+| `rejection_reason` | `VARCHAR(255)` | Ya | Alasan barang ditolak (rusak/pecah/sobek) |
+| `landed_unit_cost` | `DECIMAL(15,2)` | Tidak | HPP perolehan per unit setelah alokasi diskon & ongkir |
+| `landed_total_cost` | `DECIMAL(15,2)` | Tidak | Total nilai persediaan yang masuk (`accepted_qty * landed_unit_cost`) |
+| `notes` | `VARCHAR(255)` | Ya | Catatan per item |
+| `created_at` / `updated_at` | `TIMESTAMP` | Ya | Timestamps |
+
+**CHECK Constraints:**
+- `physically_received_qty = (accepted_qty + rejected_qty)` (`chk_rcv_item_phys_sum`)
+- `accepted_qty >= 0`, `rejected_qty >= 0`, `landed_unit_cost >= 0`, `landed_total_cost >= 0`
+
+---
+
+### 7.5 Tabel `supplier_payments`
+Catatan pengeluaran kas/bank untuk pembayaran utang dagang pemasok atas barang diterima (*accepted*).
+
+| Kolom | Tipe Data | Nullable | Keterangan / Constraint |
+|---|---|:---:|---|
+| `id` | `BIGINT UNSIGNED` | Tidak | Primary Key, Auto Increment |
+| `payment_number` | `VARCHAR(100)` | Tidak | **UNIQUE** (`PAY-YYYYMMDD-XXXXX`) |
+| `purchase_id` | `BIGINT UNSIGNED` | Tidak | Foreign Key -> `purchases.id` (**`ON DELETE RESTRICT`**) |
+| `cash_account_id` | `BIGINT UNSIGNED` | Tidak | Foreign Key -> `cash_accounts.id` (**`ON DELETE RESTRICT`**) |
+| `method` | `VARCHAR(50)` | Tidak | Metode pembayaran (`cash`, `bank_transfer`) |
+| `amount` | `DECIMAL(15,2)` | Tidak | Nominal pembayaran kas (wajib > 0) |
+| `reference_number` | `VARCHAR(100)` | Ya | Nomor bukti transfer / kuitansi |
+| `paid_at` | `TIMESTAMP` | Tidak | Waktu pembayaran disahkan |
+| `notes` | `TEXT` | Ya | Catatan pembayaran |
+| `cash_movement_id` | `BIGINT UNSIGNED` | Ya | Foreign Key -> `cash_movements.id` (**`UNIQUE`**, **`ON DELETE RESTRICT`**) |
+| `created_by` | `BIGINT UNSIGNED` | Ya | Foreign Key -> `users.id` (**`ON DELETE RESTRICT`**) |
+| `reversed_by` | `BIGINT UNSIGNED` | Ya | Foreign Key -> `users.id` (**`ON DELETE RESTRICT`**) |
+| `reversal_reason` | `VARCHAR(255)` | Ya | Alasan pembalikan pembayaran |
+| `created_at` / `updated_at` | `TIMESTAMP` | Ya | Timestamps |
+
+**CHECK Constraints:**
+- `amount > 0` (`chk_supp_pay_amount_pos`)
+
 

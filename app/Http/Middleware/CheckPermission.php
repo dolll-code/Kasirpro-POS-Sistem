@@ -29,7 +29,16 @@ class CheckPermission
 
         $user = Auth::user();
 
-        if (! $user->hasPermission($permission)) {
+        $permissions = explode('|', $permission);
+        $hasAccess = false;
+        foreach ($permissions as $p) {
+            if ($user->hasPermission(trim($p))) {
+                $hasAccess = true;
+                break;
+            }
+        }
+
+        if (! $hasAccess) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'error' => [

@@ -2,7 +2,7 @@
 
 | Metadata | Nilai |
 |---|---|
-| Status | **Diimplementasikan (Tahap 05 — Selesai)** |
+| Status | **Diimplementasikan (Tahap 06 — Selesai)** |
 | Base URL | `http://localhost:8000` |
 | Autentikasi | Cookie-based Session (`SameSite=Lax`, CSRF Protected) |
 | Terakhir Ditinjau | 2026-11-18 |
@@ -177,4 +177,50 @@
 | `GET` | `/api/v1/cash-accounts/{account}/movements` | `store_settings.manage` | Mengambil buku besar mutasi kas terpaginasi beserta relasi pembuat & pembalik |
 | `GET` | `/api/v1/cash-accounts/{account}/reconcile` | `store_settings.manage` | Mengambil status rekonsiliasi matematis buku besar kas |
 | `POST` | `/api/v1/cash-accounts/{account}/reverse/{movement}` | `store_settings.manage` | Melakukan pembalikan transaksi via API (wajib menyertakan `reason`) |
+
+---
+
+## 6. Katalog Rute Pembelian, Penerimaan, & Pembayaran Pemasok (Tahap 06)
+
+### 6.1 Rute Antarmuka Web Pembelian & Pesanan (Purchase Orders)
+| Method | Rute URI | Nama Rute | Izin (Permission) | Deskripsi |
+|---|---|---|---|---|
+| `GET` | `/purchases` | `purchases.index` | `purchases.view` | Dashboard PO, filter status pesanan & status bayar, kartu KPI ringkasan |
+| `GET` | `/purchases/create` | `purchases.create` | `purchases.create` | Formulir pembuat draft PO interaktif (Alpine.js live calculation) |
+| `POST` | `/purchases` | `purchases.store` | `purchases.create` | Menyimpan draft pesanan pembelian baru beserta rincian item & diskon |
+| `GET` | `/purchases/{purchase}` | `purchases.show` | `purchases.view` | Detail lengkap PO, progress penerimaan, daftar receipt & pembayaran |
+| `GET` | `/purchases/{purchase}/edit` | `purchases.edit` | `purchases.create` | Formulir edit draft pesanan pembelian (hanya saat status `draft`) |
+| `PUT` | `/purchases/{purchase}` | `purchases.update` | `purchases.create` | Memperbarui rincian item/diskon draft PO |
+| `DELETE` | `/purchases/{purchase}` | `purchases.destroy` | `purchases.create` | Menghapus draft pesanan (ditolak 409 jika status bukan `draft`) |
+| `POST` | `/purchases/{purchase}/confirm` | `purchases.confirm` | `purchases.create` | Konfirmasi PO (`draft` -> `ordered`), mengunci pengeditan langsung |
+| `POST` | `/purchases/{purchase}/cancel` | `purchases.cancel` | `purchases.create` | Membatalkan/menutup sisa PO dengan alasan pembatalan wajib |
+
+### 6.2 Rute Antarmuka Web Penerimaan Barang (Goods Receiving)
+| Method | Rute URI | Nama Rute | Izin (Permission) | Deskripsi |
+|---|---|---|---|---|
+| `GET` | `/purchases/{purchase}/receive` | `purchases.receipts.create` | `purchases.create` | Formulir penerimaan fisik barang (`accepted`, `rejected`, & biaya landed cost) |
+| `POST` | `/purchases/{purchase}/receipts` | `purchases.receipts.store` | `purchases.create` | Memposting penerimaan barang atomik, mutasi persediaan, & pembaruan HPP MWA |
+| `GET` | `/purchases/{purchase}/receipts/{receipt}` | `purchases.receipts.show` | `purchases.view` | Rincian bukti penerimaan barang (*Good Receipt Note*) & alokasi biaya landed cost |
+
+### 6.3 Rute Antarmuka Web Pembayaran Pemasok (Supplier Payments)
+| Method | Rute URI | Nama Rute | Izin (Permission) | Deskripsi |
+|---|---|---|---|---|
+| `GET` | `/purchases/{purchase}/payments/create` | `purchases.payments.create` | `purchases.create` | Formulir pencatatan pembayaran utang pemasok dengan batas sisa tagihan |
+| `POST` | `/purchases/{purchase}/payments` | `purchases.payments.store` | `purchases.create` | Menyimpan pembayaran utang, memotong saldo kas/bank, & memperbarui status bayar |
+| `POST` | `/purchases/{purchase}/payments/{payment}/reverse` | `purchases.payments.reverse` | `purchases.create` | Pembalikan pembayaran pemasok (*reversal*) dengan pengembalian saldo kas & alasan wajib |
+
+### 6.4 Endpoint JSON API (`/api/v1/purchases/*`)
+| Method | Rute URI | Nama Rute | Izin (Permission) | Deskripsi |
+|---|---|---|---|---|
+| `GET` | `/api/v1/purchases` | `api.purchases.index` | `purchases.view` | Mengambil daftar PO terpaginasi dengan relasi pemasok & rincian status |
+| `POST` | `/api/v1/purchases` | `api.purchases.store` | `purchases.create` | Membuat draft PO baru via payload JSON terstruktur |
+| `GET` | `/api/v1/purchases/{purchase}` | `api.purchases.show` | `purchases.view` | Mengambil rincian PO, item, riwayat receipt, dan riwayat pembayaran |
+| `PATCH` | `/api/v1/purchases/{purchase}` | `api.purchases.update` | `purchases.create` | Memperbarui draft PO via JSON |
+| `POST` | `/api/v1/purchases/{purchase}/confirm` | `api.purchases.confirm` | `purchases.create` | Mengonfirmasi PO menjadi `ordered` via API |
+| `POST` | `/api/v1/purchases/{purchase}/cancel` | `api.purchases.cancel` | `purchases.create` | Membatalkan / menutup sisa PO via API (wajib field `cancellation_reason`) |
+| `POST` | `/api/v1/purchases/{purchase}/receipts` | `api.purchases.receipts.store` | `purchases.create` | Memposting penerimaan barang via JSON API dengan kalkulasi landed cost |
+| `GET` | `/api/v1/purchases/{purchase}/receipts/{receipt}` | `api.purchases.receipts.show` | `purchases.view` | Mengambil rincian nota penerimaan dan alokasi landed cost per item |
+| `POST` | `/api/v1/purchases/{purchase}/payments` | `api.purchases.payments.store` | `purchases.create` | Mencatat pembayaran utang pemasok via API (memvalidasi batas utang barang diterima) |
+| `POST` | `/api/v1/purchases/{purchase}/payments/{payment}/reverse` | `api.purchases.payments.reverse` | `purchases.create` | Membalikkan transaksi pembayaran pemasok via API (wajib field `reason`) |
+
 

@@ -8,8 +8,11 @@ use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\MasterDashboardController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\PurchaseReceiptController;
 use App\Http\Controllers\StoreProfileController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\SupplierPaymentController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
@@ -116,6 +119,43 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/movements', [InventoryController::class, 'movements'])->name('movements');
             Route::get('/low-stock', [InventoryController::class, 'lowStock'])->name('low_stock');
             Route::get('/{product}/reconcile', [InventoryController::class, 'reconcile'])->name('product_reconcile');
+        });
+    });
+
+    // Purchasing, Receiving, and Supplier Payments (FR-PUR-01..05)
+    Route::middleware('permission:purchases.view|purchases.create')->group(function () {
+        Route::get('/purchases', [PurchaseController::class, 'index'])->name('purchases.index');
+        Route::get('/purchases/create', [PurchaseController::class, 'create'])->name('purchases.create');
+        Route::post('/purchases', [PurchaseController::class, 'store'])->name('purchases.store');
+        Route::get('/purchases/{purchase}', [PurchaseController::class, 'show'])->name('purchases.show');
+        Route::get('/purchases/{purchase}/edit', [PurchaseController::class, 'edit'])->name('purchases.edit');
+        Route::put('/purchases/{purchase}', [PurchaseController::class, 'update'])->name('purchases.update');
+        Route::delete('/purchases/{purchase}', [PurchaseController::class, 'destroy'])->name('purchases.destroy');
+        Route::post('/purchases/{purchase}/confirm', [PurchaseController::class, 'confirm'])->name('purchases.confirm');
+        Route::post('/purchases/{purchase}/cancel', [PurchaseController::class, 'cancel'])->name('purchases.cancel');
+
+        // Receiving
+        Route::get('/purchases/{purchase}/receive', [PurchaseReceiptController::class, 'create'])->name('purchases.receipts.create');
+        Route::post('/purchases/{purchase}/receipts', [PurchaseReceiptController::class, 'store'])->name('purchases.receipts.store');
+        Route::get('/purchases/{purchase}/receipts/{receipt}', [PurchaseReceiptController::class, 'show'])->name('purchases.receipts.show');
+
+        // Supplier Payments
+        Route::get('/purchases/{purchase}/payments/create', [SupplierPaymentController::class, 'create'])->name('purchases.payments.create');
+        Route::post('/purchases/{purchase}/payments', [SupplierPaymentController::class, 'store'])->name('purchases.payments.store');
+        Route::post('/purchases/{purchase}/payments/{payment}/reverse', [SupplierPaymentController::class, 'reverse'])->name('purchases.payments.reverse');
+
+        // Purchasing JSON API (PRD §11)
+        Route::prefix('api/v1/purchases')->name('api.purchases.')->group(function () {
+            Route::get('/', [PurchaseController::class, 'index'])->name('index');
+            Route::post('/', [PurchaseController::class, 'store'])->name('store');
+            Route::get('/{purchase}', [PurchaseController::class, 'show'])->name('show');
+            Route::patch('/{purchase}', [PurchaseController::class, 'update'])->name('update');
+            Route::post('/{purchase}/confirm', [PurchaseController::class, 'confirm'])->name('confirm');
+            Route::post('/{purchase}/cancel', [PurchaseController::class, 'cancel'])->name('cancel');
+            Route::post('/{purchase}/receipts', [PurchaseReceiptController::class, 'store'])->name('receipts.store');
+            Route::get('/{purchase}/receipts/{receipt}', [PurchaseReceiptController::class, 'show'])->name('receipts.show');
+            Route::post('/{purchase}/payments', [SupplierPaymentController::class, 'store'])->name('payments.store');
+            Route::post('/{purchase}/payments/{payment}/reverse', [SupplierPaymentController::class, 'reverse'])->name('payments.reverse');
         });
     });
 });
