@@ -2,10 +2,10 @@
 
 | Metadata | Nilai |
 |---|---|
-| Status | **Diimplementasikan (Tahap 04 — Selesai)** |
+| Status | **Diimplementasikan (Tahap 05 — Selesai)** |
 | Engine | **MySQL 8.0 / InnoDB** |
 | Collation | `utf8mb4_unicode_ci` |
-| Terakhir Ditinjau | 2026-11-17 |
+| Terakhir Ditinjau | 2026-11-18 |
 | Sumber Terkait | `prd.md` (§10), `database/migrations/*` |
 
 ---
@@ -340,3 +340,53 @@ Pencatatan riwayat kronologis pembaruan HPP rata-rata bergerak (*Moving Weighted
 **CHECK Constraints (MySQL 8.0+ / InnoDB):**
 - `cost_before >= 0`, `cost_after >= 0`
 - `qty_before >= 0`, `qty_after >= 0`
+
+---
+
+## 6. Struktur Tabel Manajemen Kas & Buku Besar Kas (Tahap 05)
+
+### 6.1 Pembaruan Kolom Tabel `cash_accounts`
+Pada Tahap 05, tabel `cash_accounts` diperkaya dengan kolom proyeksi saldo terdenormalisasi yang selalu sinkron dengan buku besar mutasi kas:
+
+| Kolom Ditambahkan | Tipe Data | Nullable | Keterangan / Constraint |
+|---|---|:---:|---|
+| `current_balance` | `DECIMAL(15,2)` | Tidak | Default `0.00`, saldo kas saat ini |
+
+**CHECK Constraint:**
+- `current_balance >= 0` (`chk_cash_acc_balance_nonneg`): Menjamin di level database engine bahwa saldo akun kas/bank dilarang mengalami cerukan (*overdraft / negative balance*).
+
+---
+
+### 6.2 Tabel `cash_movements`
+Buku besar mutasi kas yang bersifat kekal (*append-only ledger*) yang mencatat setiap pergerakan kas masuk (*inflow*) dan kas keluar (*outflow*) di seluruh sistem secara atomik dan kronologis.
+
+| Kolom | Tipe Data | Nullable | Keterangan / Constraint |
+|---|---|:---:|---|
+| `id` | `BIGINT UNSIGNED` | Tidak | Primary Key, Auto Increment |
+| `cash_account_id` | `BIGINT UNSIGNED` | Tidak | Foreign Key -> `cash_accounts.id` (**`ON DELETE RESTRICT`**) |
+| `movement_type` | `VARCHAR(50)` | Tidak | Tipe transaksi kas (`OPENING_BALANCE`, `SALE_PAYMENT`, `SUPPLIER_PAYMENT`, `EXPENSE_PAYMENT`, `CASH_IN`, `CASH_OUT`, `TRANSFER_IN`, `TRANSFER_OUT`, `REVERSAL`) |
+| `direction` | `ENUM('in', 'out')`| Tidak | Arah pergerakan uang (`in` = kas masuk, `out` = kas keluar) |
+| `amount` | `DECIMAL(15,2)` | Tidak | Nilai nominal transaksi kas (wajib > 0) |
+| `balance_before` | `DECIMAL(15,2)` | Tidak | Saldo kas sebelum mutasi |
+| `balance_after` | `DECIMAL(15,2)` | Tidak | Saldo kas setelah mutasi disahkan |
+| `description` | `VARCHAR(255)` | Ya | Keterangan deskriptif transaksi kas |
+| `source_type` | `VARCHAR(100)` | Ya | Entitas sumber transaksi (`opening_balance`, `sale_payments`, `supplier_payments`, `expense_payments`, `reversal`, dll) |
+| `source_id` | `BIGINT UNSIGNED` | Ya | ID primer pada entitas sumber transaksi |
+| `source_number` | `VARCHAR(100)` | Ya | Nomor referensi dokumen sumber (misal: nomor faktur, nota, atau kuitansi) |
+| `reversal_of_id` | `BIGINT UNSIGNED` | Ya | Foreign Key -> `cash_movements.id` (**`ON DELETE RESTRICT`**), **UNIQUE** |
+| `created_by` | `BIGINT UNSIGNED` | Ya | Foreign Key -> `users.id` (**`ON DELETE RESTRICT`**), penanggung jawab transaksi |
+| `occurred_at` | `TIMESTAMP` | Tidak | Waktu mutasi terjadi (zona `Asia/Jakarta`) |
+| `created_at` | `TIMESTAMP` | Tidak | Waktu mutasi dicatat ke dalam database |
+
+**Indeks & Constraint Keunikan:**
+- `UNIQUE (source_type, source_id)` (`uq_cash_mov_source`): Menjamin idempotensi transaksi bahwa satu dokumen pembayaran/penerimaan hanya dapat membuat tepat satu mutasi kas.
+- `UNIQUE (reversal_of_id)` (`uq_cash_mov_reversal`): Menjamin bahwa satu mutasi kas hanya dapat dibalikkan (*reversal*) maksimal satu kali.
+- `INDEX (cash_account_id, occurred_at, id)` (`idx_cash_mov_acc_occurred`): Optimasi query kronologis buku kas dan filter rentang tanggal.
+- `INDEX (movement_type)` (`idx_cash_mov_type`): Optimasi filter laporan per jenis mutasi kas.
+- `INDEX (direction)` (`idx_cash_mov_direction`): Optimasi agregasi total kas masuk vs keluar.
+
+**CHECK Constraints (MySQL 8.0+ / InnoDB):**
+- `amount > 0` (`chk_cash_mov_amount_pos`): Nilai mutasi kas wajib positif.
+- `balance_before >= 0` (`chk_cash_mov_before_nonneg`): Saldo sebelum mutasi dilarang negatif.
+- `balance_after >= 0` (`chk_cash_mov_after_nonneg`): Saldo sesudah mutasi dilarang negatif.
+

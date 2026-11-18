@@ -119,3 +119,34 @@ Pengaturan identitas toko yang otomatis tersemat sebagai *snapshot* permanen pad
   - `80 mm`: Ukuran printer kasir lebar (48 karakter per baris).
 - **Header & Footer Struk:** Ucapan selamat datang dan pesan garansi/kebijakan retur barang di bagian bawah nota.
 - **Logo Struk:** Unggah logo toko (format PNG, JPG, JPEG, WEBP, maks 2 MB) untuk dicetak pada struk belanja dan tampilan sistem.
+
+---
+
+## 9. Buku Kas & Rekonsiliasi Pergerakan Kas (`/cash-accounts/{account}`)
+
+Buku Kas (*Cash Ledger*) menyajikan catatan kronologis mutasi kas secara kekal (*append-only*).
+
+### A. Kartu Ringkasan Indikator Keuangan (KPI)
+Pada halaman utama **Akun Kas & Bank (`/cash-accounts`)**, terdapat 3 kartu KPI utama:
+1. **Total Kas Fisik:** Jumlah seluruh saldo uang tunai yang berada di laci kasir dan brankas toko.
+2. **Total Saldo Bank:** Akumulasi dana pada seluruh rekening bank operasional yang aktif.
+3. **Total Likuiditas Toko:** Jumlah agregat keseluruhan uang tunai dan saldo bank yang siap digunakan.
+
+### B. Membuka Buku Kas & Riwayat Mutasi
+Klik tombol **Buku Kas** pada akun kas atau bank yang dipilih:
+- **Informasi Akun:** Menampilkan kode, tipe, tanggal pembukaan, dan saldo terkini (`current_balance`).
+- **Audit Rekonsiliasi:** Kartu audit otomatis yang memverifikasi bahwa `Saldo Saat Ini` sama persis dengan `Saldo Awal + Total Masuk - Total Keluar` (`difference = 0.00`).
+- **Penyaringan Data:** Filter mutasi berdasarkan rentang tanggal kejadian (*Dari Tanggal* & *Sampai Tanggal*), arah mutasi (*Kas Masuk / Keluar*), serta jenis mutasi.
+
+### C. Pembatalan Transaksi Kas (Reversal)
+Sesuai prinsip kepatuhan pembukuan, baris mutasi kas **tidak dapat dihapus atau disunting**. Jika terjadi kesalahan pencatatan transaksi:
+1. Klik tombol **Balikkan Transaksi (Reversal)** pada baris mutasi yang ingin dibatalkan.
+2. Sistem akan membuka dialog konfirmasi dan **mewajibkan pengisian alasan pembalikan** (contoh: *"Koreksi salah input nomor nota penjualan"*).
+3. Saat dikonfirmasi, sistem akan:
+   - Membuat baris mutasi baru bertipe `REVERSAL` dengan arah berlawanan.
+   - Menautkan ID transaksi asli pada kolom `reversal_of_id`.
+   - Mengembalikan atau mengurangi saldo kas secara atomik.
+   - Mencatat aktivitas pembalikan pada log audit sistem.
+   - Menandai transaksi asli dengan lencana status *Dibalikkan*.
+4. Transaksi yang sudah pernah dibalikkan atau transaksi reversal itu sendiri dilarang untuk dibalikkan kembali.
+

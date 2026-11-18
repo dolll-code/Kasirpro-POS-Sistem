@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -19,12 +21,14 @@ class CashAccount extends Model
         'account_type',
         'opening_balance',
         'opening_balance_at',
+        'current_balance',
         'is_active',
     ];
 
     protected $casts = [
         'opening_balance' => 'decimal:2',
         'opening_balance_at' => 'datetime',
+        'current_balance' => 'string',
         'is_active' => 'boolean',
     ];
 
@@ -64,15 +68,29 @@ class CashAccount extends Model
     }
 
     /**
+     * Account has many cash movements.
+     */
+    public function movements(): HasMany
+    {
+        return $this->hasMany(CashMovement::class)->orderBy('occurred_at', 'desc')->orderBy('id', 'desc');
+    }
+
+    /**
+     * Latest cash movement recorded for this account.
+     */
+    public function latestMovement(): HasOne
+    {
+        return $this->hasOne(CashMovement::class)->latestOfMany('id');
+    }
+
+    /**
      * Check if this cash account has any financial movements or transactions recorded.
      * Prevents hard delete if transactions exist.
      */
     public function hasMovements(): bool
     {
-        if (Schema::hasTable('cash_movements')) {
-            if (DB::table('cash_movements')->where('cash_account_id', $this->id)->exists()) {
-                return true;
-            }
+        if ($this->movements()->exists()) {
+            return true;
         }
 
         if (Schema::hasTable('sale_payments')) {

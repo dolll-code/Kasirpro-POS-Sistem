@@ -2,9 +2,9 @@
 
 | Metadata | Nilai |
 |---|---|
-| Status | **Diimplementasikan (Tahap 01, 02, 03 & 04)** |
+| Status | **Diimplementasikan (Tahap 01, 02, 03, 04 & 05)** |
 | Dokumen Induk | `prd.md` (§6, §8, §22.1) |
-| Terakhir Ditinjau | 2026-11-17 |
+| Terakhir Ditinjau | 2026-11-18 |
 
 Dokumen ini mendefinisikan seluruh invariant dan aturan bisnis resmi aplikasi KasirPro menggunakan konvensi ID stabil yang dapat ditelusuri ke automated test suite.
 
@@ -82,3 +82,18 @@ Dokumen ini mendefinisikan seluruh invariant dan aturan bisnis resmi aplikasi Ka
 | Rule ID | Nama Aturan | Definisi Perilaku & Invariant | Pengujian Otomatis |
 |---|---|---|---|
 | **BR-SEQ-01** | Penomoran Dokumen Atomik & Anti-Duplikasi | Penomoran dokumen transaksi toko (`TRX`, `PO`, `RCV`, `RET`, `EXP`, `SO`, `ADJ`) dikelola secara atomik melalui tabel `document_sequences` dengan penguncian baris (`lockForUpdate`). Format baku: `{KODE}-{YYYYMMDD}-{00001}` (5 digit padding). Dilarang memakai `MAX(id)+1`. | `DocumentSequenceTest`, `InventoryConcurrencyTest` |
+
+---
+
+## 7. Domain Manajemen Kas & Buku Besar Kas (`BR-CASH-*`)
+
+| Rule ID | Nama Aturan | Definisi Perilaku & Invariant | Pengujian Otomatis |
+|---|---|---|---|
+| **BR-CASH-01** | Formula Saldo Kas & Bank | Saldo akun kas/bank selalu memenuhi persamaan audit buku besar: `Balance = Opening_Balance + Total_Inflows - Total_Outflows`. Setiap mutasi memperbarui `current_balance` pada `cash_accounts` secara sinkron. | `CashMovementServiceTest`, `CashAccountControllerTest` |
+| **BR-CASH-02** | Larangan Mutasi Kas Negatif & Cerukan (*Non-Negative Guard*) | Transaksi pengeluaran kas (*outflow*) yang melebihi saldo kas tersedia (`current_balance`) wajib ditolak seketika dengan `InsufficientCashBalanceException` (HTTP 409 Conflict). Saldo kas dan nilai pergerakan kas dilarang keras bernilai negatif (&ge; 0). | `CashMovementServiceTest`, `CashConcurrencyTest` |
+| **BR-CASH-03** | Buku Besar Kas Bersifat Kekal (*Append-Only Cash Ledger*) | Seluruh mutasi kas dicatat pada tabel `cash_movements`. Baris mutasi kas dilarang keras diubah (*update*) maupun dihapus (*delete*). Perubahan atau pembatalan transaksi wajib dilakukan dengan membuat entri pembalik (*reversal*) baru. | `CashMovementServiceTest` |
+| **BR-CASH-04** | Saldo Awal Terotorisasi Tunggal (*Single Authorized Opening Balance*) | Setiap akun kas/bank hanya diizinkan memiliki tepat satu mutasi saldo awal bertipe `OPENING_BALANCE` yang dicatat saat pembuatan akun. Percobaan pencatatan ulang ditolak dengan `DuplicateCashMovementException`. Saldo awal historis dilarang diedit langsung. | `CashMovementServiceTest`, `CashAccountTest` |
+| **BR-CASH-05** | Jaminan Idempotensi Transaksi Sumber (*Source Uniqueness Guarantee*) | Setiap satu dokumen pembayaran transaksi (misal: pembayaran penjualan kasir, pembayaran utang pemasok, biaya operasional) hanya dapat menghasilkan tepat satu mutasi kas melalui constraint unik basis data `(source_type, source_id)`. | `CashMovementServiceTest`, `CashConcurrencyTest` |
+| **BR-CASH-06** | Prosedur Pembalikan Transaksi (*Compensating Cash Reversal*) | Pembalikan transaksi kas (*reversal*) menghasilkan baris mutasi baru bertipe `REVERSAL` dengan arah berlawanan (`in` &rarr; `out` atau `out` &rarr; `in`), mewajibkan alasan koreksi, terhubung ke transaksi asli via `reversal_of_id`, dan diproteksi unik agar tidak dapat dibalikkan dua kali. | `CashReversalTest`, `CashAccountControllerTest` |
+| **BR-CASH-07** | Penguncian Baris Kas Pesimistik (*Pessimistic Locking & Audit Consistency*) | Seluruh mutasi kas dieksekusi dalam transaksi basis data atomik (`DB::transaction`) dengan mengunci baris akun kas (`lockForUpdate`). Sistem menyediakan fungsi `reconcile()` untuk memvalidasi konsistensi 100% antara saldo terproyeksi dengan penjumlahan audit ledger. | `CashMovementServiceTest`, `CashConcurrencyTest`, `CashAccountControllerTest` |
+

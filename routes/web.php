@@ -83,10 +83,21 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::patch('/expense-categories/{expense_category}/toggle-status', [ExpenseCategoryController::class, 'toggleStatus'])->name('expense-categories.toggle_status');
     });
 
-    // Master: Cash Accounts & Store Settings (FR-MST-06, FR-STORE-01)
+    // Master: Cash Accounts & Store Settings (FR-MST-06, FR-STORE-01, FR-CASH-01..02)
     Route::middleware('permission:store_settings.manage')->group(function () {
-        Route::resource('cash-accounts', CashAccountController::class)->except(['show']);
+        Route::resource('cash-accounts', CashAccountController::class);
         Route::patch('/cash-accounts/{cash_account}/toggle-status', [CashAccountController::class, 'toggleStatus'])->name('cash-accounts.toggle_status');
+        Route::post('/cash-accounts/{cash_account}/reverse/{cash_movement}', [CashAccountController::class, 'reverseMovement'])->name('cash-accounts.reverse_movement');
+        Route::get('/cash-accounts/{cash_account}/reconcile', [CashAccountController::class, 'reconcile'])->name('cash-accounts.reconcile');
+
+        // Cash Accounts JSON API
+        Route::prefix('api/v1/cash-accounts')->name('api.cash_accounts.')->group(function () {
+            Route::get('/', [CashAccountController::class, 'index'])->name('index');
+            Route::get('/{cash_account}', [CashAccountController::class, 'show'])->name('show');
+            Route::get('/{cash_account}/movements', [CashAccountController::class, 'movements'])->name('movements');
+            Route::get('/{cash_account}/reconcile', [CashAccountController::class, 'reconcile'])->name('reconcile');
+            Route::post('/{cash_account}/reverse/{cash_movement}', [CashAccountController::class, 'reverseMovement'])->name('reverse');
+        });
 
         Route::get('/store-profile', [StoreProfileController::class, 'edit'])->name('store-profile.edit');
         Route::put('/store-profile', [StoreProfileController::class, 'update'])->name('store-profile.update');

@@ -2,10 +2,10 @@
 
 | Metadata | Nilai |
 |---|---|
-| Status | **Diimplementasikan (Tahap 04 — Selesai)** |
+| Status | **Diimplementasikan (Tahap 05 — Selesai)** |
 | Base URL | `http://localhost:8000` |
 | Autentikasi | Cookie-based Session (`SameSite=Lax`, CSRF Protected) |
-| Terakhir Ditinjau | 2026-11-17 |
+| Terakhir Ditinjau | 2026-11-18 |
 | Sumber Terkait | `prd.md` (§11), `routes/web.php` |
 
 ---
@@ -121,13 +121,16 @@
 ### 3.7 Akun Kas & Bank (Cash Accounts)
 | Method | Rute URI | Nama Rute | Izin (Permission) | Deskripsi |
 |---|---|---|---|---|
-| `GET` | `/cash-accounts` | `cash-accounts.index` | `store_settings.manage` | Daftar akun kas fisik & rekening bank |
+| `GET` | `/cash-accounts` | `cash-accounts.index` | `store_settings.manage` | Daftar akun kas fisik & rekening bank (dengan kartu KPI saldo likuiditas) |
 | `GET` | `/cash-accounts/create` | `cash-accounts.create` | `store_settings.manage` | Formulir pendaftaran akun kas/bank baru |
-| `POST` | `/cash-accounts` | `cash-accounts.store` | `store_settings.manage` | Simpan akun kas/bank dengan saldo pembukaan |
+| `POST` | `/cash-accounts` | `cash-accounts.store` | `store_settings.manage` | Simpan akun kas/bank dengan saldo pembukaan awal atomik |
+| `GET` | `/cash-accounts/{account}` | `cash-accounts.show` | `store_settings.manage` | Buku Kas: rincian akun, riwayat mutasi kas, filter & status rekonsiliasi |
 | `GET` | `/cash-accounts/{account}/edit` | `cash-accounts.edit` | `store_settings.manage` | Formulir ubah akun (saldo awal terkunci) |
 | `PUT` | `/cash-accounts/{account}` | `cash-accounts.update` | `store_settings.manage` | Perbarui nama / kode / tipe akun |
 | `DELETE` | `/cash-accounts/{account}` | `cash-accounts.destroy` | `store_settings.manage` | Hapus akun (ditolak 409 jika memiliki pergerakan kas) |
 | `PATCH` | `/cash-accounts/{account}/toggle-status` | `cash-accounts.toggle_status` | `store_settings.manage` | Aktifkan / nonaktifkan akun kas/bank |
+| `POST` | `/cash-accounts/{account}/reverse/{movement}` | `cash-accounts.reverse_movement` | `store_settings.manage` | Pembalikan transaksi kas (*reversal*) dengan alasan wajib |
+| `GET` | `/cash-accounts/{account}/reconcile` | `cash-accounts.reconcile` | `store_settings.manage` | Status rekonsiliasi audit saldo buku besar kas (JSON) |
 
 ### 3.8 Profil Toko & Pengaturan Struk (Store Profile)
 | Method | Rute URI | Nama Rute | Izin (Permission) | Deskripsi |
@@ -154,3 +157,24 @@
 | `GET` | `/api/v1/inventory/movements` | `inventory.view` | Mengambil jejak mutasi buku besar persediaan append-only |
 | `GET` | `/api/v1/inventory/low-stock` | `inventory.view` | Mengambil data produk yang membutuhkan restock |
 | `GET` | `/api/v1/inventory/{product}/reconcile` | `inventory.view` | Memeriksa integritas konsistensi saldo vs akumulasi mutasi |
+
+---
+
+## 5. Katalog Rute Manajemen Kas & Buku Besar Kas (Tahap 05)
+
+### 5.1 Rute Antarmuka Web Buku Kas
+| Method | Rute URI | Nama Rute | Izin (Permission) | Deskripsi |
+|---|---|---|---|---|
+| `GET` | `/cash-accounts` | `cash-accounts.index` | `store_settings.manage` | Ringkasan KPI saldo kas & bank, daftar akun aktif/nonaktif |
+| `GET` | `/cash-accounts/{account}` | `cash-accounts.show` | `store_settings.manage` | Buku Kas: kartu rekonsiliasi, filter arah & tanggal, riwayat mutasi kas |
+| `POST` | `/cash-accounts/{account}/reverse/{movement}` | `cash-accounts.reverse_movement` | `store_settings.manage` | Eksekusi pembalikan kas (*reversal*) dengan pencatatan jejak audit |
+
+### 5.2 Endpoint JSON API (`/api/v1/cash-accounts/*`)
+| Method | Rute URI | Izin (Permission) | Deskripsi |
+|---|---|---|---|
+| `GET` | `/api/v1/cash-accounts` | `store_settings.manage` | Mengambil daftar akun kas/bank, saldo terkini, dan total KPI |
+| `GET` | `/api/v1/cash-accounts/{account}` | `store_settings.manage` | Mengambil rincian akun kas, saldo, dan status rekonsiliasi |
+| `GET` | `/api/v1/cash-accounts/{account}/movements` | `store_settings.manage` | Mengambil buku besar mutasi kas terpaginasi beserta relasi pembuat & pembalik |
+| `GET` | `/api/v1/cash-accounts/{account}/reconcile` | `store_settings.manage` | Mengambil status rekonsiliasi matematis buku besar kas |
+| `POST` | `/api/v1/cash-accounts/{account}/reverse/{movement}` | `store_settings.manage` | Melakukan pembalikan transaksi via API (wajib menyertakan `reason`) |
+

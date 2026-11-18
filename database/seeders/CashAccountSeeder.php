@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\CashAccount;
+use App\Models\CashMovement;
+use App\Services\CashMovementService;
 use Illuminate\Database\Seeder;
 
 class CashAccountSeeder extends Seeder
@@ -12,6 +14,8 @@ class CashAccountSeeder extends Seeder
      */
     public function run(): void
     {
+        $cashMovementService = app(CashMovementService::class);
+
         $accounts = [
             [
                 'code' => 'KAS-01',
@@ -30,10 +34,19 @@ class CashAccountSeeder extends Seeder
         ];
 
         foreach ($accounts as $data) {
-            CashAccount::firstOrCreate(
+            $account = CashAccount::firstOrCreate(
                 ['code' => $data['code']],
                 $data + ['is_active' => true]
             );
+
+            // Record opening balance movement if not exists
+            $hasOpening = CashMovement::where('cash_account_id', $account->id)
+                ->where('movement_type', 'OPENING_BALANCE')
+                ->exists();
+
+            if (! $hasOpening) {
+                $cashMovementService->recordOpeningBalance($account);
+            }
         }
     }
 }
