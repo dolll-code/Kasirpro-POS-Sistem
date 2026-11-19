@@ -2,7 +2,7 @@
 
 | Metadata | Nilai |
 |---|---|
-| Modul | **Master Data, Buku Kas, Persediaan, Pengadaan & POS Kasir (Tahap 07)** |
+| Modul | **Master Data, Buku Kas, Persediaan, Pengadaan, POS & Transfer Manual (Tahap 08)** |
 | Target Pembaca | Pemilik Toko (Admin), Pengawas Operasional (Supervisor), Kasir |
 | Terakhir Ditinjau | 2026-11-19 |
 
@@ -363,5 +363,49 @@ Jika barcode pada kemasan rusak atau produk tidak memiliki barcode:
    - Supervisor dan Admin yang memiliki izin `sales.view_all` dapat memantau transaksi seluruh kasir.
 5. **Rincian Transaksi:** Klik nomor transaksi untuk melihat rincian barang, harga jual, alokasi diskon, HPP modal (khusus Admin), akun kas penerima uang, dan waktu transaksi.
 
+---
+
+## 12. Penjualan Transfer Bank Manual & Reservasi Stok (Tahap 08)
+
+### 12.1 Membuat Checkout Transfer dari POS
+1. Buka halaman **Mesin Kasir (POS)** dan masukkan produk ke keranjang melalui scan barcode atau pencarian katalog.
+2. Pada panel pembayaran, pilih tab **Transfer Bank (Manual)**.
+3. Pilih **Rekening Tujuan** toko yang menerima transfer. Masukkan nomor referensi/bukti transfer jika pelanggan menyediakannya; kolom referensi opsional.
+4. Klik **Kirim Transfer & Reservasi Stok**. Server menghitung ulang harga, diskon, dan total; browser tidak menentukan nilai transaksi final.
+5. Sistem membuat transaksi berstatus `pending_payment` dengan pembayaran `pending_verification`. Stok fisik tidak dipotong dan kas belum bertambah; kuantitas hanya ditahan sebagai reservasi.
+6. Pesanan dan batas waktu reservasi tampil pada konfirmasi. Default TTL 15 menit; selama periode ini `available = on_hand - reserved`.
+
+### 12.2 Memeriksa dan Mengesahkan Transfer (`/sales-transfers/pending`)
+Hanya Admin/Supervisor dengan izin `payments.verify_transfer` dapat membuka menu **Verifikasi Transfer**.
+
+1. Buka menu **Penjualan (POS) → Verifikasi Transfer**.
+2. Daftar menampilkan nomor transaksi, kasir pembuat, rekening tujuan, referensi, jumlah tagihan, dan countdown batas reservasi.
+3. Buka **Verifikasi / Detail** untuk memeriksa item, total, informasi rekening, referensi pelanggan, status reservasi, dan timeline.
+4. Cocokkan mutasi rekening dan dana efektif masuk secara manual di layanan/perangkat bank. KasirPro tidak terhubung ke API bank.
+5. Jika dana cocok, klik **Verifikasi & Sahkan Pembayaran**. Konfirmasi tindakan. Sistem kemudian memotong on-hand, mengonsumsi reservasi, menyimpan HPP historis, membuat stock movement keluar, mencatat cash movement masuk sebesar grand total, dan menyelesaikan sale secara atomik.
+6. Jika dana tidak cocok atau tidak diterima, isi **Catatan Verifikasi / Alasan Penolakan**, lalu klik **Tolak Transfer**. Sale dibatalkan dan stok reservasi dilepas; tidak ada stock-out atau cash-in.
+
+### 12.3 Maker-Checker dan Admin Override
+- User yang membuat transaksi transfer tidak dapat memverifikasi transaksinya sendiri, sekalipun mempunyai izin verifikasi. Minta Supervisor atau Admin lain untuk melakukan pemeriksaan.
+- Admin yang menjadi requester dapat menggunakan **Admin Override** hanya dengan mengisi alasan tertulis wajib. Alasan dan identitas verifier masuk audit log.
+- Supervisor tidak dapat menggunakan Admin Override untuk mengesahkan transaksi sendiri.
+
+### 12.4 Pembatalan Transaksi Transfer Pending
+- Kasir dapat membatalkan transaksi transfer miliknya sendiri selama masih `pending_payment`; Supervisor/Admin berizin juga dapat membatalkan.
+- Dari detail transaksi, pilih **Batalkan Transaksi Ini** dan konfirmasi. Sistem mencatat alasan, merilis seluruh kuantitas reservasi, memperbarui status, dan menulis audit log.
+- Pembatalan tidak membuat stock movement keluar atau cash movement masuk.
+
+### 12.5 Kedaluwarsa dan Transfer Terlambat
+- Reservasi default berlaku 15 menit. Scheduler melepaskan stok yang melewati `expires_at` sedikitnya setiap menit. Sale menjadi `cancelled`, pembayaran berstatus `expired`, dan alasan kedaluwarsa tersimpan.
+- Jika timer habis sebelum verifikasi, verifikasi ditolak. Transaksi kedaluwarsa **tidak boleh dipaksakan** menjadi `completed`, karena stok yang dilepas mungkin telah dijual ke pelanggan lain.
+- Jika pelanggan sudah mentransfer setelah TTL habis, Admin/Supervisor memeriksa stok fisik terlebih dahulu. Bila barang masih tersedia, kasir membuat transaksi baru dengan referensi transfer dan supervisor mengesahkan transaksi baru. Bila stok habis/terjual, ikuti prosedur toko untuk pengembalian dana manual atau barang pengganti; catat tindakan melalui penyesuaian kas yang beralasan dan diaudit. Jangan menghidupkan transaksi kedaluwarsa atau membuat posting sale/stok dari transaksi tersebut.
+
+### 12.6 Status yang Ditampilkan
+| Sale status | Payment status | Arti |
+|---|---|---|
+| `pending_payment` | `pending_verification` | Menunggu pemeriksaan manual; stok direservasi sampai TTL |
+| `completed` | `paid` | Transfer diverifikasi; stock-out, cash-in, HPP, dan audit telah diposting |
+| `cancelled` | `rejected` | Verifier menolak atau transaksi dibatalkan; reservasi dilepas |
+| `cancelled` | `expired` | TTL habis; reservasi dilepas otomatis dan verifikasi tidak dapat dipaksakan |
 
 

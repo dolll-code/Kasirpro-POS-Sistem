@@ -113,9 +113,10 @@ class CashMovementService
         ?string $sourceNumber = null,
         ?string $description = null,
         ?int $userId = null,
-        ?DateTimeInterface $occurredAt = null
+        ?DateTimeInterface $occurredAt = null,
+        bool $transactional = true
     ): CashMovement {
-        return DB::transaction(function () use (
+        $record = function () use (
             $account,
             $amount,
             $movementType,
@@ -170,7 +171,9 @@ class CashMovementService
                 'occurred_at' => $occurredAt ?? Carbon::now('Asia/Jakarta'),
                 'created_at' => Carbon::now('Asia/Jakarta'),
             ]);
-        });
+        };
+
+        return $transactional ? DB::transaction($record) : $record();
     }
 
     /**
@@ -186,9 +189,10 @@ class CashMovementService
         ?string $sourceNumber = null,
         ?string $description = null,
         ?int $userId = null,
-        ?DateTimeInterface $occurredAt = null
+        ?DateTimeInterface $occurredAt = null,
+        bool $transactional = true
     ): CashMovement {
-        return DB::transaction(function () use (
+        $record = function () use (
             $account,
             $amount,
             $movementType,
@@ -262,7 +266,9 @@ class CashMovementService
                 'occurred_at' => $occurredAt ?? Carbon::now('Asia/Jakarta'),
                 'created_at' => Carbon::now('Asia/Jakarta'),
             ]);
-        });
+        };
+
+        return $transactional ? DB::transaction($record) : $record();
     }
 
     /**

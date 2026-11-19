@@ -25,7 +25,7 @@ class SalePayment extends Model
     {
         // Sale payment records are immutable once verified/paid
         static::updating(function (SalePayment $payment) {
-            if ($payment->verification_status === 'verified') {
+            if ($payment->getOriginal('verification_status') === 'verified') {
                 throw new RuntimeException('Catatan pembayaran kasir yang telah terverifikasi tidak dapat diubah langsung.');
             }
         });

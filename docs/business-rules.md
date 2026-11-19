@@ -2,7 +2,7 @@
 
 | Metadata | Nilai |
 |---|---|
-| Status | **Diimplementasikan (Tahap 01, 02, 03, 04, 05, 06 & 07)** |
+| Status | **Diimplementasikan (Tahap 01, 02, 03, 04, 05, 06, 07 & 08)** |
 | Dokumen Induk | `prd.md` (§6, §8, §22.1) |
 | Terakhir Ditinjau | 2026-11-19 |
 
@@ -126,6 +126,11 @@ Dokumen ini mendefinisikan seluruh invariant dan aturan bisnis resmi aplikasi Ka
 | **BR-SALE-07** | Penegakan Idempotensi Mutlak | Setiap permintaan checkout wajib menyertakan `Idempotency-Key`. Permintaan berulang dengan key dan payload yang sama mengembalikan data transaksi asli tanpa menciptakan mutasi kas atau pemotongan stok ganda. Permintaan dengan key sama namun payload berbeda ditolak dengan `IdempotencyConflictException` (HTTP 409 Conflict). Jika koneksi peramban terputus setelah commit, status transaksi dapat ditelusuri via key. | `SaleIdempotencyTest` |
 | **BR-SALE-08** | Struk Thermal Snapshot & Cetak Ulang Bebas Mutasi | Format struk mendukung ukuran kertas thermal 58 mm dan 80 mm berbasis data snapshot saat transaksi. Cetak ulang (*reprint*) menampilkan penanda salinan resmi tanpa pernah memicu transaksi baru, mutasi kas kedua, atau pemotongan persediaan tambahan. | `SaleHistoryAndReceiptTest` |
 | **BR-SALE-09** | Isolasi Riwayat Penjualan Kasir (Anti-IDOR) | Pengguna dengan peran kasir hanya diizinkan melihat riwayat transaksi miliknya sendiri (`sales.view_own`). Percobaan membuka transaksi kasir lain diblokir dengan HTTP 403 Forbidden. Izin `sales.view_all` diperlukan untuk melihat transaksi lintas kasir. | `SaleHistoryAndReceiptTest`, `AuthorizationTest` |
+| **BR-SALE-10** | Penahanan Reservasi Stok Transfer Pending | Checkout transfer bank menghasilkan `sale_status = pending_payment` dan `payment_status = pending_verification`. Stok fisik (`on_hand`) tidak berkurang dan kas bank belum bertambah. Kuantitas ditahan pada `stock_reservations` dengan TTL default 15 menit (configurable via `pos.transfer_reservation_ttl_minutes`), sehingga `available_quantity = on_hand - reserved` berkurang seketika untuk mencegah overselling. | `ManualBankTransferCheckoutTest` |
+| **BR-SALE-11** | Verifikasi Manual Transfer Atomik | Verifikasi transfer bank hanya dapat dieksekusi oleh pengguna berizin `payments.verify_transfer` (Supervisor / Admin). Jika disahkan (`verified`) saat reservasi masih aktif: kunci baris pesanan, kunci reservasi, kunci akun kas, kunci saldo produk; konsumsi reservasi, potong stok fisik via mutasi `OUT_SALE`, catat penerimaan kas bank via mutasi `IN_SALE` tepat sebesar `grand_total`, dan ubah status penjualan menjadi `completed` & `paid` secara atomik. | `TransferVerificationTest`, `TransferConcurrencyTest` |
+| **BR-SALE-12** | Maker-Checker Verifikasi Transfer & Admin Override | Kasir pembuat pesanan transfer dilarang keras memverifikasi transaksinya sendiri (`verifier_id !== cashier_id`). Administrator berwenang melakukan override hanya apabila menyertakan alasan tertulis wajib (`admin_override_reason`) yang disimpan permanen ke dalam catatan audit trail. | `TransferVerificationTest` |
+| **BR-SALE-13** | Penolakan, Kedaluwarsa & Larangan Pemaksaan | Jika verifikasi ditolak (`rejected`), dibatalkan (`cancelled`), atau waktu reservasi kedaluwarsa (`expired`), reservasi stok dilepas kembali ke saldo persediaan tersedia tanpa pernah memotong stok fisik atau mencatat uang masuk. Scheduler `sales:expire-reservations` berjalan setiap menit untuk mengelola kedaluwarsa secara otomatis. Transaksi yang kedaluwarsa dilarang keras dipaksakan menjadi `completed`. | `TransferVerificationTest`, `StockReservationExpiryTest` |
+
 
 
 

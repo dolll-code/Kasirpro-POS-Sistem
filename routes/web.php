@@ -7,9 +7,11 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\MasterDashboardController;
+use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\PurchaseReceiptController;
+use App\Http\Controllers\SaleController;
 use App\Http\Controllers\StoreProfileController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierPaymentController;
@@ -161,35 +163,48 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     // POS & Cash Sales (PRD §5.5, §6.4, §11.3)
     Route::middleware('permission:sales.create')->group(function () {
-        Route::get('/pos', [\App\Http\Controllers\PosController::class, 'index'])->name('pos.index');
-        Route::post('/pos/calculate', [\App\Http\Controllers\PosController::class, 'calculate'])->name('pos.calculate');
-        Route::post('/pos/checkout', [\App\Http\Controllers\PosController::class, 'checkout'])->name('pos.checkout');
-        Route::get('/pos/barcode/{barcode}', [\App\Http\Controllers\PosController::class, 'barcodeLookup'])->name('pos.barcode');
+        Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
+        Route::post('/pos/calculate', [PosController::class, 'calculate'])->name('pos.calculate');
+        Route::post('/pos/checkout', [PosController::class, 'checkout'])->name('pos.checkout');
+        Route::get('/pos/barcode/{barcode}', [PosController::class, 'barcodeLookup'])->name('pos.barcode');
     });
 
     // Sales History & Receipts (PRD §5.5, §6.4, §6.5)
     Route::middleware('permission:sales.view_all|sales.view_own')->group(function () {
-        Route::get('/sales', [\App\Http\Controllers\SaleController::class, 'index'])->name('sales.index');
-        Route::get('/sales/idempotency/{key}', [\App\Http\Controllers\SaleController::class, 'checkByIdempotencyKey'])->name('sales.idempotency');
-        Route::get('/sales/{sale}', [\App\Http\Controllers\SaleController::class, 'show'])->name('sales.show');
-        Route::get('/sales/{sale}/receipt', [\App\Http\Controllers\SaleController::class, 'receipt'])->name('sales.receipt');
+        Route::get('/sales', [SaleController::class, 'index'])->name('sales.index');
+        Route::get('/sales/idempotency/{key}', [SaleController::class, 'checkByIdempotencyKey'])->name('sales.idempotency');
+        Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
+        Route::get('/sales/{sale}/receipt', [SaleController::class, 'receipt'])->name('sales.receipt');
+        Route::post('/sales/{sale}/cancel', [SaleController::class, 'cancel'])->name('sales.cancel');
+    });
+
+    // Manual Bank Transfer Verification (PRD §5.5, §6.4, §7.3)
+    Route::middleware('permission:payments.verify_transfer')->group(function () {
+        Route::get('/sales-transfers/pending', [SaleController::class, 'pendingTransfers'])->name('sales.transfers.pending');
+        Route::post('/sales/{sale}/verify-transfer', [SaleController::class, 'verifyTransfer'])->name('sales.verify_transfer');
     });
 
     // POS & Sales JSON API (PRD §11.3)
     Route::prefix('api/v1')->group(function () {
         Route::middleware('permission:sales.create')->group(function () {
-            Route::post('/sales/calculate', [\App\Http\Controllers\PosController::class, 'calculate'])->name('api.sales.calculate');
-            Route::post('/sales/checkout', [\App\Http\Controllers\PosController::class, 'checkout'])->name('api.sales.checkout');
+            Route::post('/sales/calculate', [PosController::class, 'calculate'])->name('api.sales.calculate');
+            Route::post('/sales/checkout', [PosController::class, 'checkout'])->name('api.sales.checkout');
         });
 
         Route::middleware('permission:sales.view_all|sales.view_own')->group(function () {
-            Route::get('/sales', [\App\Http\Controllers\SaleController::class, 'index'])->name('api.sales.index');
-            Route::get('/sales/idempotency/{key}', [\App\Http\Controllers\SaleController::class, 'checkByIdempotencyKey'])->name('api.sales.idempotency');
-            Route::get('/sales/{sale}', [\App\Http\Controllers\SaleController::class, 'show'])->name('api.sales.show');
+            Route::get('/sales', [SaleController::class, 'index'])->name('api.sales.index');
+            Route::get('/sales/idempotency/{key}', [SaleController::class, 'checkByIdempotencyKey'])->name('api.sales.idempotency');
+            Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('api.sales.show');
+            Route::post('/sales/{sale}/cancel', [SaleController::class, 'cancel'])->name('api.sales.cancel');
+        });
+
+        Route::middleware('permission:payments.verify_transfer')->group(function () {
+            Route::get('/sales/transfers/pending', [SaleController::class, 'pendingTransfers'])->name('api.sales.transfers.pending');
+            Route::post('/sales/{sale}/verify-transfer', [SaleController::class, 'verifyTransfer'])->name('api.sales.verify_transfer');
         });
 
         Route::middleware('permission:products.view')->group(function () {
-            Route::get('/products/barcode/{barcode}', [\App\Http\Controllers\PosController::class, 'barcodeLookup'])->name('api.products.barcode');
+            Route::get('/products/barcode/{barcode}', [PosController::class, 'barcodeLookup'])->name('api.products.barcode');
         });
     });
 });

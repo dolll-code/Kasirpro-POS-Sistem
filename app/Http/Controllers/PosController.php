@@ -6,6 +6,7 @@ use App\Exceptions\DiscountApprovalRequiredException;
 use App\Exceptions\IdempotencyConflictException;
 use App\Exceptions\InsufficientCashTenderException;
 use App\Exceptions\InsufficientStockException;
+use App\Exceptions\ReservationExpiredException;
 use App\Http\Requests\Sales\CheckoutRequest;
 use App\Models\CashAccount;
 use App\Models\Category;
@@ -13,7 +14,6 @@ use App\Services\ProductService;
 use App\Services\SaleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 use InvalidArgumentException;
 
@@ -31,10 +31,11 @@ class PosController extends Controller
     {
         $categories = Category::active()->orderBy('name')->get();
         $cashAccounts = CashAccount::active()->where('account_type', 'cash')->orderBy('name')->get();
+        $bankAccounts = CashAccount::active()->where('account_type', 'bank')->orderBy('name')->get();
         $defaultCashAccount = $cashAccounts->where('code', config('pos.default_cash_account_code', 'KAS-TOKO'))->first()
             ?? $cashAccounts->first();
 
-        return view('pos.index', compact('categories', 'cashAccounts', 'defaultCashAccount'));
+        return view('pos.index', compact('categories', 'cashAccounts', 'bankAccounts', 'defaultCashAccount'));
     }
 
     /**
@@ -131,21 +132,38 @@ class PosController extends Controller
     {
         // Extract Idempotency-Key from header or payload
         $idempotencyKey = $request->header('Idempotency-Key')
-            ?? $request->input('idempotency_key')
-            ?? (string) Str::uuid();
+            ?? $request->input('idempotency_key');
+
+        if (! is_string($idempotencyKey) || trim($idempotencyKey) === '' || strlen($idempotencyKey) > 64) {
+            return response()->json([
+                'error' => [
+                    'code' => 'IDEMPOTENCY_KEY_REQUIRED',
+                    'message' => 'Header Idempotency-Key atau field idempotency_key wajib diisi (maksimal 64 karakter).',
+                ],
+            ], 422);
+        }
 
         try {
-            $sale = $this->saleService->checkoutCash(
-                payload: $request->validated(),
+            $payload = $request->validated();
+            unset($payload['idempotency_key']);
+
+            $sale = $this->saleService->checkout(
+                payload: $payload,
                 cashier: $request->user(),
                 idempotencyKey: $idempotencyKey
             );
 
+            $isPending = $sale->sale_status === 'pending_payment';
+
             return response()->json([
-                'message' => 'Transaksi penjualan berhasil diproses.',
+                'message' => $isPending
+                    ? 'Pesanan transfer bank berhasil dibuat dan stok telah direservasi. Menunggu verifikasi.'
+                    : 'Transaksi penjualan berhasil diproses.',
                 'data' => [
                     'id' => $sale->id,
                     'transaction_number' => $sale->transaction_number,
+                    'sale_status' => $sale->sale_status,
+                    'payment_status' => $sale->payment_status,
                     'gross_total' => $sale->gross_total,
                     'item_discount_total' => $sale->item_discount_total,
                     'transaction_discount_total' => $sale->transaction_discount_total,
@@ -153,6 +171,7 @@ class PosController extends Controller
                     'cash_tendered' => $sale->payment?->cash_tendered,
                     'change_amount' => $sale->payment?->change_amount,
                     'completed_at' => $sale->completed_at?->toIso8601String(),
+                    'reservation_expires_at' => $sale->pending_expires_at?->toIso8601String(),
                     'receipt_url' => route('sales.receipt', $sale),
                     'items_count' => $sale->items->count(),
                 ],
@@ -161,6 +180,13 @@ class PosController extends Controller
             return response()->json([
                 'error' => [
                     'code' => 'IDEMPOTENCY_CONFLICT',
+                    'message' => $e->getMessage(),
+                ],
+            ], 409);
+        } catch (ReservationExpiredException $e) {
+            return response()->json([
+                'error' => [
+                    'code' => 'RESERVATION_EXPIRED',
                     'message' => $e->getMessage(),
                 ],
             ], 409);

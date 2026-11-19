@@ -118,6 +118,10 @@ KasirPro menerapkan kontrol akses berbasis izin granular (*permission-based*), b
    Kasir dilarang melihat transaksi milik kasir lain jika tidak memiliki izin `sales.view_all`.
 3. **Kebijakan UserPolicy:**
    - Admin dilarang menonaktifkan atau menghapus akun aktifnya sendiri (`toggleStatus` dan `delete`).
+4. **Prinsip Maker-Checker Verifikasi Transfer Bank (PRD §4.2, §6.4):**
+   - Izin `payments.verify_transfer` hanya dimiliki oleh peran Admin dan Supervisor.
+   - Kasir pembuat pesanan transfer dilarang keras mengesahkan atau memverifikasi transaksi miliknya sendiri (`$verifier->id !== $sale->cashier_id`).
+   - Pengecualian (*Admin Override*): Administrator yang bertindak sebagai kasir dapat mengesahkan transaksinya sendiri hanya jika menyertakan alasan tertulis wajib (*override reason*) yang disimpan permanen ke dalam catatan audit trail.
 
 ---
 
@@ -131,3 +135,4 @@ KasirPro menerapkan kontrol akses berbasis izin granular (*permission-based*), b
 | `FR-AUTH-04` | Penegakan otorisasi backend (403 default-deny, anti-IDOR) | `tests/Feature/AuthorizationTest.php` | **LULUS (6/6)** |
 | `FR-AUTH-05` | Tampilan profil mandiri dan ubah kata sandi terverifikasi | `tests/Feature/Auth/PasswordSecurityTest.php` | **LULUS (3/3)** |
 | `FR-AUD-01` | Pencatatan audit trail otomatis tanpa menyimpan rahasia/password | `tests/Feature/AuditLogTest.php` | **LULUS (2/2)** |
+| `FR-SAL-05` | Maker-checker verifikasi transfer & admin override | `tests/Feature/Sales/TransferVerificationTest.php` | **LULUS (8/8)** |

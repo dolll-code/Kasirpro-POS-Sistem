@@ -302,9 +302,9 @@ class InventoryService
     /**
      * Reserve stock for pending transactions (e.g. manual bank transfer checkout).
      */
-    public function reserveStock(Product|int $product, string|Decimal $quantity): void
+    public function reserveStock(Product|int $product, string|Decimal $quantity, bool $transactional = true): void
     {
-        DB::transaction(function () use ($product, $quantity) {
+        $reserve = function () use ($product, $quantity) {
             $balance = $this->lockBalance($product);
             $qty = Decimal::of($quantity, 3);
 
@@ -330,15 +330,21 @@ class InventoryService
             $balance->quantity_reserved = $newReserved->toString();
             $balance->version += 1;
             $balance->save();
-        });
+        };
+
+        if ($transactional) {
+            DB::transaction($reserve);
+        } else {
+            $reserve();
+        }
     }
 
     /**
      * Release previously reserved stock (e.g. transfer rejected/expired/cancelled).
      */
-    public function releaseReservation(Product|int $product, string|Decimal $quantity): void
+    public function releaseReservation(Product|int $product, string|Decimal $quantity, bool $transactional = true): void
     {
-        DB::transaction(function () use ($product, $quantity) {
+        $release = function () use ($product, $quantity) {
             $balance = $this->lockBalance($product);
             $qty = Decimal::of($quantity, 3);
 
@@ -352,7 +358,13 @@ class InventoryService
             $balance->quantity_reserved = $newReserved->toString();
             $balance->version += 1;
             $balance->save();
-        });
+        };
+
+        if ($transactional) {
+            DB::transaction($release);
+        } else {
+            $release();
+        }
     }
 
     /**

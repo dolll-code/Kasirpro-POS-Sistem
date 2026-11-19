@@ -22,6 +22,7 @@ class Sale extends Model
         'transaction_discount_total' => 'string',
         'grand_total' => 'string',
         'completed_at' => 'datetime',
+        'pending_expires_at' => 'datetime',
         'cancelled_at' => 'datetime',
     ];
 
@@ -55,9 +56,19 @@ class Sale extends Model
         return $this->hasOne(SalePayment::class);
     }
 
+    public function reservation(): HasOne
+    {
+        return $this->hasOne(StockReservation::class);
+    }
+
     public function isCompleted(): bool
     {
         return $this->sale_status === 'completed';
+    }
+
+    public function isPendingPayment(): bool
+    {
+        return $this->sale_status === 'pending_payment';
     }
 
     public function isCancelled(): bool
@@ -84,6 +95,7 @@ class Sale extends Model
     {
         return match ($this->sale_status) {
             'completed' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">Selesai</span>',
+            'pending_payment' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">Menunggu Pembayaran</span>',
             'cancelled' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-800">Dibatalkan</span>',
             default => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800">'.e($this->sale_status).'</span>',
         };
@@ -93,6 +105,9 @@ class Sale extends Model
     {
         return match ($this->payment_status) {
             'paid' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">Lunas</span>',
+            'pending_verification' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">Menunggu Verifikasi</span>',
+            'rejected' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-800">Ditolak</span>',
+            'expired' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">Kedaluwarsa</span>',
             'unpaid' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">Belum Lunas</span>',
             'partially_refunded' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">Retur Parsial</span>',
             'refunded' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-800">Direfund Penuh</span>',

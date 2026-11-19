@@ -236,115 +236,241 @@
             </div>
         </div>
 
-        <!-- Payment Section (Cash Only - PRD §5.5, §6.4) -->
+        <!-- Payment Section (Cash & Manual Bank Transfer - PRD §5.5, §6.4, §7.3) -->
         <div class="p-3 bg-slate-900 border-t border-slate-700/80 space-y-2.5">
-            <!-- Cash Account Selection -->
-            <div class="flex items-center justify-between text-xs">
-                <label class="text-slate-400">Kas Penerima:</label>
-                <select x-model="selectedCashAccountId" class="bg-slate-800 border border-slate-700 rounded-md text-xs text-white py-1 px-2 focus:ring-emerald-500">
-                    @foreach($cashAccounts as $acc)
-                        <option value="{{ $acc->id }}" {{ $acc->id === $defaultCashAccount?->id ? 'selected' : '' }}>
-                            {{ $acc->name }} ({{ $acc->code }})
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-
-            <!-- Tender Amount Input -->
-            <div>
-                <label class="block text-xs font-medium text-slate-300 mb-1">Uang Tunai Diterima (Rp):</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold text-sm">Rp</span>
-                    <input type="text"
-                           x-model="cashTendered"
-                           @input="calculateChange()"
-                           placeholder="0"
-                           class="w-full pl-10 pr-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-lg font-bold text-white text-right focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
-                </div>
-            </div>
-
-            <!-- Quick Amount Buttons -->
-            <div class="grid grid-cols-4 gap-1.5 text-xs font-medium">
-                <button type="button" @click="setTenderExact()" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-emerald-400 font-semibold border border-slate-700 transition-colors">
-                    Uang Pas
-                </button>
-                <button type="button" @click="setTenderQuick(20000)" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 border border-slate-700 transition-colors">
-                    20 rb
-                </button>
-                <button type="button" @click="setTenderQuick(50000)" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 border border-slate-700 transition-colors">
-                    50 rb
-                </button>
-                <button type="button" @click="setTenderQuick(100000)" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 border border-slate-700 transition-colors">
-                    100 rb
-                </button>
-            </div>
-
-            <!-- Kembalian Display -->
-            <div class="p-2.5 rounded-lg border flex items-center justify-between"
-                 :class="changeAmount >= 0 ? 'bg-emerald-950/40 border-emerald-800/60' : 'bg-rose-950/40 border-rose-800/60'">
-                <span class="text-xs font-semibold" :class="changeAmount >= 0 ? 'text-emerald-300' : 'text-rose-300'">
-                    <span x-text="changeAmount >= 0 ? 'Kembalian:' : 'Kurang Bayar:'"></span>
-                </span>
-                <span class="text-base font-extrabold font-mono"
-                      :class="changeAmount >= 0 ? 'text-emerald-400' : 'text-rose-400'"
-                      x-text="formatIdr(Math.abs(changeAmount))"></span>
-            </div>
-
-            <!-- Checkout Submit Button -->
-            <button type="button"
-                    @click="processCheckout()"
-                    :disabled="isSubmitting || cart.length === 0 || changeAmount < 0"
-                    :class="(isSubmitting || cart.length === 0 || changeAmount < 0) ? 'opacity-50 cursor-not-allowed bg-emerald-800' : 'bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99]'"
-                    class="w-full py-3 rounded-xl font-bold text-white text-sm tracking-wide transition-all flex items-center justify-center gap-2 shadow-lg">
-                <template x-if="isSubmitting">
-                    <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            <!-- Payment Method Tabs -->
+            <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-950 rounded-lg text-xs font-semibold">
+                <button type="button"
+                        @click="paymentMethod = 'cash'"
+                        :class="paymentMethod === 'cash' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'"
+                        class="py-1.5 rounded-md transition-colors flex items-center justify-center gap-1.5">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
                     </svg>
-                </template>
-                <span x-text="isSubmitting ? 'Memproses Transaksi...' : 'Bayar Tunai & Cetak Struk [F9]'"></span>
-            </button>
+                    Tunai (Cash)
+                </button>
+                <button type="button"
+                        @click="paymentMethod = 'bank_transfer'"
+                        :class="paymentMethod === 'bank_transfer' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'"
+                        class="py-1.5 rounded-md transition-colors flex items-center justify-center gap-1.5">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                    </svg>
+                    Transfer Bank (Manual)
+                </button>
+            </div>
+
+            <!-- CASH PAYMENT FIELDS -->
+            <template x-if="paymentMethod === 'cash'">
+                <div class="space-y-2.5">
+                    <!-- Cash Account Selection -->
+                    <div class="flex items-center justify-between text-xs">
+                        <label class="text-slate-400">Kas Penerima:</label>
+                        <select x-model="selectedCashAccountId" class="bg-slate-800 border border-slate-700 rounded-md text-xs text-white py-1 px-2 focus:ring-emerald-500">
+                            @foreach($cashAccounts as $acc)
+                                <option value="{{ $acc->id }}" {{ $acc->id === $defaultCashAccount?->id ? 'selected' : '' }}>
+                                    {{ $acc->name }} ({{ $acc->code }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Tender Amount Input -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Uang Tunai Diterima (Rp):</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold text-sm">Rp</span>
+                            <input type="text"
+                                   x-model="cashTendered"
+                                   @input="calculateChange()"
+                                   placeholder="0"
+                                   class="w-full pl-10 pr-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-lg font-bold text-white text-right focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
+                        </div>
+                    </div>
+
+                    <!-- Quick Amount Buttons -->
+                    <div class="grid grid-cols-4 gap-1.5 text-xs font-medium">
+                        <button type="button" @click="setTenderExact()" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-emerald-400 font-semibold border border-slate-700 transition-colors">
+                            Uang Pas
+                        </button>
+                        <button type="button" @click="setTenderQuick(20000)" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 border border-slate-700 transition-colors">
+                            20 rb
+                        </button>
+                        <button type="button" @click="setTenderQuick(50000)" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 border border-slate-700 transition-colors">
+                            50 rb
+                        </button>
+                        <button type="button" @click="setTenderQuick(100000)" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 border border-slate-700 transition-colors">
+                            100 rb
+                        </button>
+                    </div>
+
+                    <!-- Kembalian Display -->
+                    <div class="p-2.5 rounded-lg border flex items-center justify-between"
+                         :class="changeAmount >= 0 ? 'bg-emerald-950/40 border-emerald-800/60' : 'bg-rose-950/40 border-rose-800/60'">
+                        <span class="text-xs font-semibold" :class="changeAmount >= 0 ? 'text-emerald-300' : 'text-rose-300'">
+                            <span x-text="changeAmount >= 0 ? 'Kembalian:' : 'Kurang Bayar:'"></span>
+                        </span>
+                        <span class="text-base font-extrabold font-mono"
+                              :class="changeAmount >= 0 ? 'text-emerald-400' : 'text-rose-400'"
+                              x-text="formatIdr(Math.abs(changeAmount))"></span>
+                    </div>
+
+                    <!-- Checkout Submit Button (Cash) -->
+                    <button type="button"
+                            @click="processCheckout()"
+                            :disabled="isSubmitting || cart.length === 0 || changeAmount < 0"
+                            :class="(isSubmitting || cart.length === 0 || changeAmount < 0) ? 'opacity-50 cursor-not-allowed bg-emerald-800' : 'bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99]'"
+                            class="w-full py-3 rounded-xl font-bold text-white text-sm tracking-wide transition-all flex items-center justify-center gap-2 shadow-lg">
+                        <template x-if="isSubmitting">
+                            <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </template>
+                        <span x-text="isSubmitting ? 'Memproses Transaksi...' : 'Bayar Tunai & Cetak Struk [F9]'"></span>
+                    </button>
+                </div>
+            </template>
+
+            <!-- BANK TRANSFER PAYMENT FIELDS -->
+            <template x-if="paymentMethod === 'bank_transfer'">
+                <div class="space-y-2.5">
+                    <!-- Bank Account Selection -->
+                    <div class="flex items-center justify-between text-xs">
+                        <label class="text-slate-400">Rekening Tujuan:</label>
+                        <select x-model="selectedBankAccountId" class="bg-slate-800 border border-slate-700 rounded-md text-xs text-white py-1 px-2 focus:ring-blue-500">
+                            @forelse($bankAccounts as $bank)
+                                <option value="{{ $bank->id }}">
+                                    {{ $bank->name }} ({{ $bank->code }})
+                                </option>
+                            @empty
+                                @foreach($cashAccounts as $acc)
+                                    <option value="{{ $acc->id }}">
+                                        {{ $acc->name }} ({{ $acc->code }})
+                                    </option>
+                                @endforeach
+                            @endforelse
+                        </select>
+                    </div>
+
+                    <!-- Transfer Reference Number -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Nomor Referensi / Bukti Transfer:</label>
+                        <input type="text"
+                               x-model="transferReferenceNumber"
+                               placeholder="Contoh: REF-BCA-123456"
+                               class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <!-- Reservation Info Banner (PRD §3.1 DEC-05, §6.4) -->
+                    <div class="p-2.5 bg-blue-950/40 border border-blue-800/60 rounded-lg text-xs text-blue-200 flex items-start gap-2">
+                        <svg class="h-4 w-4 text-blue-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <p class="leading-relaxed">
+                            <strong>Reservasi Stok 15 Menit:</strong> Kuantitas barang akan ditahan sementara waktu dan dilepas otomatis jika tidak diverifikasi sebelum masa berlaku habis. Stok fisik dan kas masuk baru diposting setelah diverifikasi Supervisor.
+                        </p>
+                    </div>
+
+                    <!-- Checkout Submit Button (Transfer) -->
+                    <button type="button"
+                            @click="processCheckout()"
+                            :disabled="isSubmitting || cart.length === 0"
+                            :class="(isSubmitting || cart.length === 0) ? 'opacity-50 cursor-not-allowed bg-blue-800' : 'bg-blue-600 hover:bg-blue-500 active:scale-[0.99]'"
+                            class="w-full py-3 rounded-xl font-bold text-white text-sm tracking-wide transition-all flex items-center justify-center gap-2 shadow-lg">
+                        <template x-if="isSubmitting">
+                            <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </template>
+                        <span x-text="isSubmitting ? 'Memproses Transfer...' : 'Kirim Transfer & Reservasi Stok [F9]'"></span>
+                    </button>
+                </div>
+            </template>
         </div>
     </div>
 
-    <!-- Success Modal (Post-Checkout Receipt) -->
+    <!-- Success Modal (Post-Checkout Receipt or Transfer Pending) -->
     <div x-show="showSuccessModal"
          x-cloak
          class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
         <div class="bg-slate-850 rounded-2xl border border-slate-700 max-w-sm w-full p-6 text-center shadow-2xl">
-            <div class="w-14 h-14 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                </svg>
-            </div>
+            <!-- Modal Header Icon -->
+            <template x-if="lastSale?.sale_status === 'pending_payment'">
+                <div class="w-14 h-14 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </template>
+            <template x-if="lastSale?.sale_status !== 'pending_payment'">
+                <div class="w-14 h-14 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+            </template>
 
-            <h3 class="text-lg font-bold text-white mb-1">Transaksi Berhasil!</h3>
-            <p class="text-xs font-mono text-emerald-400 mb-4" x-text="lastSale?.transaction_number"></p>
+            <h3 class="text-lg font-bold text-white mb-1" x-text="lastSale?.sale_status === 'pending_payment' ? 'Pesanan Transfer Dibuat!' : 'Transaksi Berhasil!'"></h3>
+            <p class="text-xs font-mono mb-4" :class="lastSale?.sale_status === 'pending_payment' ? 'text-blue-400' : 'text-emerald-400'" x-text="lastSale?.transaction_number"></p>
 
             <div class="p-3 bg-slate-900 rounded-xl border border-slate-800 text-left text-xs space-y-2 mb-6">
                 <div class="flex justify-between text-slate-400">
                     <span>Total Belanja:</span>
                     <span class="font-mono text-white font-bold" x-text="formatIdr(lastSale?.grand_total)"></span>
                 </div>
-                <div class="flex justify-between text-slate-400">
-                    <span>Uang Tunai:</span>
-                    <span class="font-mono text-white" x-text="formatIdr(lastSale?.cash_tendered)"></span>
-                </div>
-                <div class="flex justify-between text-slate-400 pt-1 border-t border-slate-800 font-bold">
-                    <span class="text-emerald-400">Kembalian:</span>
-                    <span class="font-mono text-emerald-400 text-sm" x-text="formatIdr(lastSale?.change_amount)"></span>
-                </div>
+
+                <template x-if="lastSale?.sale_status === 'pending_payment'">
+                    <div class="space-y-1.5 pt-1.5 border-t border-slate-800 text-[11px]">
+                        <div class="flex justify-between text-slate-400">
+                            <span>Status:</span>
+                            <span class="text-amber-400 font-semibold">Menunggu Verifikasi</span>
+                        </div>
+                        <div class="flex justify-between text-slate-400" x-show="lastSale?.reservation_expires_at">
+                            <span>Reservasi Berakhir:</span>
+                            <span class="font-mono text-blue-300" x-text="lastSale?.reservation_expires_at ? new Date(lastSale.reservation_expires_at).toLocaleTimeString('id-ID') : '-'"></span>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="lastSale?.sale_status !== 'pending_payment'">
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between text-slate-400">
+                            <span>Uang Tunai:</span>
+                            <span class="font-mono text-white" x-text="formatIdr(lastSale?.cash_tendered)"></span>
+                        </div>
+                        <div class="flex justify-between text-slate-400 pt-1 border-t border-slate-800 font-bold">
+                            <span class="text-emerald-400">Kembalian:</span>
+                            <span class="font-mono text-emerald-400 text-sm" x-text="formatIdr(lastSale?.change_amount)"></span>
+                        </div>
+                    </div>
+                </template>
             </div>
 
             <div class="flex flex-col gap-2">
-                <a :href="lastSale?.receipt_url"
-                   target="_blank"
-                   class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs transition-colors flex items-center justify-center gap-2">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
-                    </svg>
-                    Cetak Nota Struk
-                </a>
+                <template x-if="lastSale?.sale_status !== 'pending_payment'">
+                    <a :href="lastSale?.receipt_url"
+                       target="_blank"
+                       class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs transition-colors flex items-center justify-center gap-2">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                        </svg>
+                        Cetak Nota Struk
+                    </a>
+                </template>
+
+                <template x-if="lastSale?.sale_status === 'pending_payment'">
+                    <a :href="'/sales/' + lastSale?.id"
+                       class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold text-xs transition-colors flex items-center justify-center gap-2">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        Buka Halaman Verifikasi Transfer
+                    </a>
+                </template>
+
                 <button type="button"
                         @click="startNewTransaction()"
                         class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-xs font-semibold transition-colors">
@@ -407,7 +533,11 @@ function posApp() {
         selectedCategory: null,
         scannerMessage: '',
         scannerMessageType: 'error',
+        paymentMethod: 'cash',
         selectedCashAccountId: '{{ $defaultCashAccount?->id ?? "" }}',
+        selectedBankAccountId: '{{ $bankAccounts->first()?->id ?? ($cashAccounts->first()?->id ?? "") }}',
+        transferReferenceNumber: '',
+        activeIdempotencyKey: null,
         cashTendered: '',
         changeAmount: 0,
         txDiscountType: 'amount',
@@ -652,7 +782,11 @@ function posApp() {
         },
 
         processCheckout() {
-            if (this.cart.length === 0 || this.changeAmount < 0 || this.isSubmitting) {
+            if (this.cart.length === 0 || this.isSubmitting) {
+                return;
+            }
+
+            if (this.paymentMethod === 'cash' && this.changeAmount < 0) {
                 return;
             }
 
@@ -669,19 +803,23 @@ function posApp() {
                 transaction_discount_type: this.txDiscountType,
                 transaction_discount_value: this.txDiscountValue,
                 payment: {
-                    method: 'cash',
-                    cash_account_id: parseInt(this.selectedCashAccountId),
-                    cash_tendered: this.cashTendered
+                    method: this.paymentMethod,
+                    cash_account_id: this.paymentMethod === 'bank_transfer'
+                        ? parseInt(this.selectedBankAccountId)
+                        : parseInt(this.selectedCashAccountId),
+                    cash_tendered: this.paymentMethod === 'cash' ? this.cashTendered : null,
+                    reference_number: this.paymentMethod === 'bank_transfer' ? this.transferReferenceNumber : null
                 },
                 discount_approval: this.approvalData.approver_id ? this.approvalData : null,
-                idempotency_key: crypto.randomUUID()
+                idempotency_key: this.activeIdempotencyKey || (this.activeIdempotencyKey = crypto.randomUUID())
             };
 
             fetch('/pos/checkout', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Idempotency-Key': payload.idempotency_key
                 },
                 body: JSON.stringify(payload)
             })
@@ -703,8 +841,27 @@ function posApp() {
                 this.cart = [];
                 this.recalculateTotals();
             })
-            .catch(err => {
-                this.scannerMessage = err.message;
+            .catch(async err => {
+                // Only a network failure is ambiguous: the server may have committed the sale.
+                // Resolve by idempotency key before advising a retry with the same key.
+                if (err instanceof TypeError) {
+                    try {
+                        const statusResponse = await fetch('/api/v1/sales/idempotency/' + encodeURIComponent(payload.idempotency_key), {
+                            headers: { 'Accept': 'application/json' }
+                        });
+                        if (statusResponse.ok) {
+                            const status = await statusResponse.json();
+                            this.lastSale = status.data;
+                            this.showSuccessModal = true;
+                            this.cart = [];
+                            this.recalculateTotals();
+                            return;
+                        }
+                    } catch (_) {}
+                }
+
+                this.scannerMessage = err.message
+                    + (err instanceof TypeError ? ' Status key transaksi belum ditemukan; ulangi checkout dengan key yang sama.' : '');
                 this.scannerMessageType = 'error';
             })
             .finally(() => {
@@ -720,8 +877,11 @@ function posApp() {
         startNewTransaction() {
             this.showSuccessModal = false;
             this.lastSale = null;
+            this.activeIdempotencyKey = null;
             this.cashTendered = '';
+            this.transferReferenceNumber = '';
             this.changeAmount = 0;
+            this.paymentMethod = 'cash';
             this.approvalData = { approver_id: '', approver_password: '', reason: '' };
             this.restoreScannerFocus();
         },

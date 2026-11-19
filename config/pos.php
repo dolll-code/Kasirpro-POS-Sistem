@@ -24,4 +24,14 @@ return [
     |--------------------------------------------------------------------------
     */
     'default_cash_account_code' => env('POS_DEFAULT_CASH_ACCOUNT_CODE', 'KAS-TOKO'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Stock Reservation TTL for Manual Bank Transfer (PRD §3.1 DEC-05, §6.4)
+    |--------------------------------------------------------------------------
+    |
+    | Default duration in minutes before pending transfer reservations expire.
+    |
+    */
+    'transfer_reservation_ttl_minutes' => (int) env('POS_TRANSFER_RESERVATION_TTL_MINUTES', 15),
 ];

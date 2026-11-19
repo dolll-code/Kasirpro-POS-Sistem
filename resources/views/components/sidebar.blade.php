@@ -176,8 +176,15 @@
                             @endif
                             @if($user->hasPermission('sales.view_own') || $user->hasPermission('sales.view_all'))
                                 <li>
-                                    <a href="{{ route('sales.index') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('sales.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2 text-sm font-medium">
+                                    <a href="{{ route('sales.index') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('sales.index') || request()->routeIs('sales.show') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2 text-sm font-medium">
                                         Riwayat Penjualan
+                                    </a>
+                                </li>
+                            @endif
+                            @if($user->hasPermission('payments.verify_transfer'))
+                                <li>
+                                    <a href="{{ route('sales.transfers.pending') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('sales.transfers.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2 text-sm font-medium">
+                                        Verifikasi Transfer
                                     </a>
                                 </li>
                             @endif
@@ -336,11 +343,20 @@
                 @endif
 
                 @if($user && ($user->hasPermission('sales.view_own') || $user->hasPermission('sales.view_all')))
-                    <a href="{{ route('sales.index') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md {{ request()->routeIs('sales.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">
-                        <svg class="mr-3 h-5 w-5 shrink-0 {{ request()->routeIs('sales.*') ? 'text-white' : 'text-slate-400 group-hover:text-slate-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <a href="{{ route('sales.index') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md {{ request()->routeIs('sales.index') || request()->routeIs('sales.show') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">
+                        <svg class="mr-3 h-5 w-5 shrink-0 {{ request()->routeIs('sales.index') || request()->routeIs('sales.show') ? 'text-white' : 'text-slate-400 group-hover:text-slate-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
                         </svg>
                         Riwayat Penjualan
+                    </a>
+                @endif
+
+                @if($user && $user->hasPermission('payments.verify_transfer'))
+                    <a href="{{ route('sales.transfers.pending') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md {{ request()->routeIs('sales.transfers.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">
+                        <svg class="mr-3 h-5 w-5 shrink-0 {{ request()->routeIs('sales.transfers.*') ? 'text-white' : 'text-slate-400 group-hover:text-slate-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                        Verifikasi Transfer
                     </a>
                 @endif
 

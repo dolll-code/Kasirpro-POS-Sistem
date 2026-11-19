@@ -62,6 +62,17 @@ class User extends Authenticatable
         return $this->role->permissions->contains('code', $permissionCode);
     }
 
+    public function hasRole(string|array $roles): bool
+    {
+        if (! $this->role) {
+            return false;
+        }
+
+        $roleList = is_array($roles) ? $roles : [$roles];
+
+        return in_array($this->role->code, $roleList, true);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role?->code === 'admin';

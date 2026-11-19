@@ -2,7 +2,7 @@
 
 | Metadata | Nilai |
 |---|---|
-| Status | **Diimplementasikan (Tahap 07 — Selesai)** |
+| Status | **Diimplementasikan (Tahap 08 — Selesai)** |
 | Engine | **MySQL 8.0 / InnoDB** |
 | Collation | `utf8mb4_unicode_ci` |
 | Terakhir Ditinjau | 2026-11-19 |
@@ -530,7 +530,7 @@ Catatan pengeluaran kas/bank untuk pembayaran utang dagang pemasok atas barang d
 
 ---
 
-## 8. Struktur Tabel Penjualan, Item & Pembayaran Kasir (Tahap 07)
+## 8. Struktur Tabel Penjualan, Item, Pembayaran Kasir & Reservasi Stok (Tahap 08)
 
 ### 8.1 Tabel `sales`
 Dokumen utama transaksi penjualan kasir (POS) yang mencatat total belanja, diskon, status pembayaran, dan snapshot identitas toko.
@@ -552,6 +552,7 @@ Dokumen utama transaksi penjualan kasir (POS) yang mencatat total belanja, disko
 | `discount_approved_by` | `BIGINT UNSIGNED` | Ya | Foreign Key -> `users.id` (**`ON DELETE SET NULL`**), supervisor otorisator diskon khusus |
 | `discount_override_reason` | `VARCHAR(255)` | Ya | Alasan pemberian diskon khusus supervisor |
 | `completed_at` | `TIMESTAMP` | Ya | **INDEX**, waktu penyelesaian dan pengakuan penjualan |
+| `pending_expires_at` | `TIMESTAMP` | Ya | Batas waktu reservasi transfer manual (TTL default 15 menit, configurable) |
 | `cancelled_at` | `TIMESTAMP` | Ya | Waktu pembatalan pesanan |
 | `cancellation_reason` | `VARCHAR(255)` | Ya | Alasan pembatalan transaksi |
 | `notes` | `TEXT` | Ya | Catatan kasir |
@@ -560,6 +561,7 @@ Dokumen utama transaksi penjualan kasir (POS) yang mencatat total belanja, disko
 **Indeks:**
 - `INDEX (sale_status, completed_at)`
 - `INDEX (cashier_id, completed_at)`
+- `INDEX (pending_expires_at)` untuk scheduler expiry
 
 **CHECK Constraints:**
 - `gross_total >= 0`, `item_discount_total >= 0`, `transaction_discount_total >= 0`, `grand_total >= 0`
@@ -607,7 +609,8 @@ Catatan pembayaran kasir yang menghubungkan transaksi penjualan dengan akun kas 
 | `cash_tendered` | `DECIMAL(15,2)` | Ya | Uang tunai yang diserahkan oleh pelanggan di kasir |
 | `change_amount` | `DECIMAL(15,2)` | Ya | Uang kembalian yang diserahkan kembali ke pelanggan |
 | `reference_number` | `VARCHAR(100)` | Ya | Nomor referensi pembayaran atau kuitansi manual |
-| `verification_status` | `VARCHAR(50)` | Tidak | Default `verified` (`pending`, `verified`, `rejected`) |
+| `verification_status` | `VARCHAR(50)` | Tidak | Default `verified` (`pending`, `verified`, `rejected`, `expired`) |
+| `verification_note` | `TEXT` | Ya | Catatan verifikasi atau alasan penolakan/kedaluwarsa |
 | `verified_by` | `BIGINT UNSIGNED` | Ya | Foreign Key -> `users.id` (**`ON DELETE RESTRICT`**) |
 | `verified_at` | `TIMESTAMP` | Ya | Waktu pengesahan verifikasi pembayaran |
 | `paid_at` | `TIMESTAMP` | Ya | Waktu diterimanya pembayaran secara nyata |
@@ -619,5 +622,46 @@ Catatan pembayaran kasir yang menghubungkan transaksi penjualan dengan akun kas 
 - `cash_tendered >= amount` (untuk pembayaran tunai)
 - `change_amount = (cash_tendered - amount)`
 
+---
+
+### 8.4 Tabel `stock_reservations`
+Header reservasi stok untuk sale transfer bank berstatus `pending_payment`. Satu transaksi memiliki maksimal satu reservasi. Reservasi aktif menahan kuantitas tersedia tetapi tidak memotong kuantitas fisik.
+
+| Kolom | Tipe Data | Nullable | Keterangan / Constraint |
+|---|---|:---:|---|
+| `id` | `BIGINT UNSIGNED` | Tidak | Primary Key, Auto Increment |
+| `sale_id` | `BIGINT UNSIGNED` | Tidak | **UNIQUE**, Foreign Key -> `sales.id` (`ON DELETE RESTRICT`) |
+| `status` | `VARCHAR(30)` | Tidak | Default `active`; state `active`, `released`, `consumed`, `expired` |
+| `expires_at` | `TIMESTAMP` | Tidak | Batas TTL; default 15 menit dari checkout (`POS_TRANSFER_RESERVATION_TTL_MINUTES`) |
+| `released_at` | `TIMESTAMP` | Ya | Waktu reservasi dilepas, dikonsumsi, atau kedaluwarsa |
+| `created_at` / `updated_at` | `TIMESTAMP` | Ya | Timestamps |
+
+**Indeks:**
+- `INDEX (status, expires_at)` untuk scheduler
+- `INDEX (expires_at)`
+
+---
+
+### 8.5 Tabel `stock_reservation_items`
+Rincian kuantitas yang ditahan per produk untuk satu reservasi.
+
+| Kolom | Tipe Data | Nullable | Keterangan / Constraint |
+|---|---|:---:|---|
+| `id` | `BIGINT UNSIGNED` | Tidak | Primary Key, Auto Increment |
+| `reservation_id` | `BIGINT UNSIGNED` | Tidak | Foreign Key -> `stock_reservations.id` (`ON DELETE CASCADE`) |
+| `product_id` | `BIGINT UNSIGNED` | Tidak | Foreign Key -> `products.id` (`ON DELETE RESTRICT`) |
+| `quantity` | `DECIMAL(15,3)` | Tidak | Kuantitas yang ditahan, harus `> 0` |
+| `created_at` / `updated_at` | `TIMESTAMP` | Ya | Timestamps |
+
+**Constraint/indeks:**
+- `UNIQUE (reservation_id, product_id)` mencegah detail produk duplikat per reservasi
+- `CHECK (quantity > 0)`
+
+### 8.6 Siklus status & invariants transfer
+- Checkout transfer membuat `sales.sale_status = pending_payment`, `sales.payment_status = pending_verification`, dan `sale_payments.verification_status = pending`.
+- Sebelum verifikasi: `inventory_balances.quantity_on_hand` tidak berubah; `quantity_reserved` bertambah; belum ada stock-out atau cash-in movement.
+- Verifikasi sukses mengonsumsi reservation dan mem-post sale/payment, stock-out, cash-in serta audit dalam satu transaksi InnoDB.
+- Reject/cancel/expiry mengurangi `quantity_reserved`, tidak mengubah on-hand, dan tidak membuat cash movement.
+- Scheduler `sales:expire-reservations` memproses reservasi aktif dengan `expires_at <= now()`; state sale/payment menjadi `cancelled`/`expired`.
 
 

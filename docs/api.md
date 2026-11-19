@@ -2,7 +2,7 @@
 
 | Metadata | Nilai |
 |---|---|
-| Status | **Diimplementasikan (Tahap 07 — Selesai)** |
+| Status | **Diimplementasikan (Tahap 08 — Selesai)** |
 | Base URL | `http://localhost:8000` |
 | Autentikasi | Cookie-based Session (`SameSite=Lax`, CSRF Protected) |
 | Terakhir Ditinjau | 2026-11-19 |
@@ -316,6 +316,105 @@ Mengembalikan status HTTP 201 Created dengan nomor transaksi dan nilai yang iden
   }
 }
 ```
+
+---
+
+## 8. Katalog Rute Transfer Bank Manual & Reservasi Stok (Tahap 08)
+
+### 8.1 Rute Antarmuka Web Verifikasi Transfer
+| Method | Rute URI | Nama Rute | Izin (Permission) | Deskripsi |
+|---|---|---|---|---|
+| `GET` | `/sales-transfers/pending` | `sales.transfers.pending` | `payments.verify_transfer` | Daftar seluruh transaksi transfer bank yang menunggu verifikasi (dengan timer hitung mundur TTL) |
+| `POST` | `/sales/{sale}/verify-transfer` | `sales.verify_transfer` | `payments.verify_transfer` | Mengesahkan (`verified`) atau menolak (`rejected`) bukti mutasi bank (Maker-Checker enforced) |
+| `POST` | `/sales/{sale}/cancel` | `sales.cancel` | `sales.view_own` / `sales.view_all` | Membatalkan transaksi transfer yang pending dan merilis reservasi stok barang |
+
+### 8.2 Endpoint JSON API (`/api/v1/sales/*`)
+| Method | Rute URI | Nama Rute | Izin (Permission) | Deskripsi |
+|---|---|---|---|---|
+| `GET` | `/api/v1/sales/transfers/pending` | `api.sales.transfers.pending` | `payments.verify_transfer` | Mengambil data transaksi transfer pending terpaginasi format JSON |
+| `POST` | `/api/v1/sales/{sale}/verify-transfer` | `api.sales.verify_transfer` | `payments.verify_transfer` | Eksekusi keputusan verifikasi transfer via JSON API (`decision: verified/rejected`) |
+| `POST` | `/api/v1/sales/{sale}/cancel` | `api.sales.cancel` | `sales.view_own` / `sales.view_all` | Membatalkan pesanan transfer pending via API |
+
+### 8.3 Contoh Kontrak Payload & Respons Verifikasi Transfer
+
+#### A. Request Checkout Transfer: `POST /api/v1/sales/checkout`
+Header:
+- `Content-Type: application/json`
+- `Idempotency-Key: c9d7840b-7fc4-478a-9ee1-778ea2257d00`
+
+Body:
+```json
+{
+  "items": [
+    {
+      "product_id": 10,
+      "quantity": "2.000"
+    }
+  ],
+  "payment": {
+    "method": "bank_transfer",
+    "cash_account_id": 2,
+    "reference_number": "REF-BCA-889911"
+  },
+  "idempotency_key": "c9d7840b-7fc4-478a-9ee1-778ea2257d00"
+}
+```
+
+Response (201 Created):
+```json
+{
+  "message": "Pesanan transfer bank berhasil dibuat dan stok telah direservasi. Menunggu verifikasi.",
+  "data": {
+    "id": 15,
+    "transaction_number": "TRX-20261119-00005",
+    "sale_status": "pending_payment",
+    "payment_status": "pending_verification",
+    "grand_total": "70000.00",
+    "completed_at": null,
+    "reservation_expires_at": "2026-11-19T18:15:00+07:00",
+    "items_count": 1
+  }
+}
+```
+
+#### B. Request Verifikasi Transfer: `POST /api/v1/sales/{id}/verify-transfer`
+Header:
+- `Content-Type: application/json`
+
+Body:
+```json
+{
+  "decision": "verified",
+  "verification_note": "Mutasi internet banking BCA telah diperiksa dan dana efektif masuk",
+  "admin_override_reason": null
+}
+```
+
+Response Sukses (200 OK):
+```json
+{
+  "message": "Pembayaran transfer bank berhasil diverifikasi dan disahkan.",
+  "data": {
+    "id": 15,
+    "transaction_number": "TRX-20261119-00005",
+    "sale_status": "completed",
+    "payment_status": "paid",
+    "grand_total": "70000.00",
+    "completed_at": "2026-11-19T18:05:22+07:00"
+  }
+}
+```
+
+#### C. Response Kedaluwarsa (409 Conflict):
+```json
+{
+  "error": {
+    "code": "RESERVATION_EXPIRED",
+    "message": "Masa berlaku reservasi stok untuk transaksi #TRX-20261119-00005 telah kedaluwarsa. Transaksi dibatalkan secara otomatis."
+  }
+}
+```
+
 
 
 

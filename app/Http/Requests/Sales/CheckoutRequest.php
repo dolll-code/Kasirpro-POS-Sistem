@@ -24,9 +24,9 @@ class CheckoutRequest extends FormRequest
             'transaction_discount_value' => ['nullable', 'numeric', 'min:0'],
 
             'payment' => ['required', 'array'],
-            'payment.method' => ['required', 'string', 'in:cash'],
+            'payment.method' => ['required', 'string', 'in:cash,bank_transfer'],
             'payment.cash_account_id' => ['nullable', 'integer', 'exists:cash_accounts,id'],
-            'payment.cash_tendered' => ['required', 'numeric', 'min:0'],
+            'payment.cash_tendered' => ['required_if:payment.method,cash', 'nullable', 'numeric', 'min:0'],
             'payment.reference_number' => ['nullable', 'string', 'max:100'],
 
             'idempotency_key' => ['nullable', 'string', 'max:64'],

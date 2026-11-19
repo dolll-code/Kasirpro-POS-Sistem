@@ -26,9 +26,16 @@ class SaleItem extends Model
 
     protected static function booted(): void
     {
-        // Sale items are append-only/immutable snapshots (PRD §8.1, §10.1)
-        static::updating(function () {
-            throw new RuntimeException('Item transaksi penjualan bersifat historis dan tidak dapat diubah.');
+        // Sale items are append-only/immutable snapshots once the sale is posted (PRD §8.1, §10.1).
+        // A manual-transfer sale that is still pending_payment is a draft: only its HPP cost
+        // snapshots may be filled in when payment verification posts the sale.
+        static::updating(function (SaleItem $item) {
+            $isPendingDraft = Sale::whereKey($item->sale_id)->value('sale_status') === 'pending_payment';
+            $mutableWhilePending = ['cost_price_snapshot', 'cost_total_snapshot', 'updated_at'];
+
+            if (! $isPendingDraft || array_diff(array_keys($item->getDirty()), $mutableWhilePending) !== []) {
+                throw new RuntimeException('Item transaksi penjualan bersifat historis dan tidak dapat diubah.');
+            }
         });
 
         static::deleting(function () {
