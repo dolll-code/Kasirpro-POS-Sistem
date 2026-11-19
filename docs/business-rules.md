@@ -2,9 +2,9 @@
 
 | Metadata | Nilai |
 |---|---|
-| Status | **Diimplementasikan (Tahap 01, 02, 03, 04, 05 & 06)** |
+| Status | **Diimplementasikan (Tahap 01, 02, 03, 04, 05, 06 & 07)** |
 | Dokumen Induk | `prd.md` (§6, §8, §22.1) |
-| Terakhir Ditinjau | 2026-11-18 |
+| Terakhir Ditinjau | 2026-11-19 |
 
 Dokumen ini mendefinisikan seluruh invariant dan aturan bisnis resmi aplikasi KasirPro menggunakan konvensi ID stabil yang dapat ditelusuri ke automated test suite.
 
@@ -110,5 +110,22 @@ Dokumen ini mendefinisikan seluruh invariant dan aturan bisnis resmi aplikasi Ka
 | **BR-PUR-05** | Validasi Fisik Penerimaan Barang | Pada setiap dokumen tanda terima (*Goods Receipt*), berlaku persamaan mutlak: `physically_received_qty = accepted_qty + rejected_qty`. Barang ditolak (*rejected*) tidak menambah stok fisik toko dan tidak mengurangi kuantitas sisa pesanan PO. Kuantitas diterima dilarang melebihi sisa pesanan (*no over-receipt*). | `PurchaseFlowTest`, `PurchaseConcurrencyTest` |
 | **BR-PUR-06** | Alokasi Landed Cost & Pembaruan Moving Average Cost | Biaya tambahan yang dapat dikapitalisasi (*capitalizable cost* seperti ongkir/asuransi) dialokasikan proporsional ke nilai barang diterima (*accepted lines*). Landed unit cost diteruskan ke `InventoryService` untuk memperbarui persediaan fisik dan HPP rata-rata bergerak (*Moving Weighted Average Cost*). | `PurchaseFlowTest` |
 | **BR-PUR-07** | Batas Maksimum Pembayaran Pemasok & Integrasi Kas | Pembayaran pemasok (*supplier payment*) dilarang melebihi nilai sisa utang yang terbentuk dari barang yang telah diterima sah (*outstanding payable*). Setiap pembayaran secara otomatis menghasilkan tepat satu pergerakan kas keluar (*cash movement out*) pada akun kas/bank yang dipilih. | `PurchaseFlowTest`, `PurchaseControllerTest`, `PurchaseConcurrencyTest` |
+
+---
+
+## 9. Domain Penjualan, POS, Diskon & Struk (`BR-SALE-*`)
+
+| Rule ID | Nama Aturan | Definisi Perilaku & Invariant | Pengujian Otomatis |
+|---|---|---|---|
+| **BR-SALE-01** | Seleksi Produk Kasir Layak Jual | Pencarian produk di meja kasir (berdasarkan Nama, SKU, atau Barcode) hanya menampilkan dan mengizinkan pemilihan produk yang berstatus aktif, serta kategori dan satuan terkait juga aktif (`isSellable = true`). Produk nonaktif atau terkunci opname ditolak dengan galat 422/409. | `ProductLookupAndScannerTest`, `CashSaleCheckoutTest` |
+| **BR-SALE-02** | Perhitungan Harga Server-Authoritative | Nilai harga satuan, diskon, HPP, subtotal, dan grand total dihitung 100% oleh server (`SaleService`). Input harga atau kalkulasi dari browser tidak pernah dipercaya saat checkout. Kuantitas pecahan divalidasi ketat terhadap `decimal_precision` satuan. | `CashSaleCheckoutTest` |
+| **BR-SALE-03** | Mesin Diskon & Alokasi Deterministik | Mendukung diskon baris dan diskon transaksi berbasis persentase (0–100%) maupun nominal rupiah (&le; nilai dasar). Diskon transaksi header dialokasikan proporsional ke setiap baris item berbasis nilai bersih baris sebelum diskon transaksi. Selisih pembulatan desimal (*residual rounding*) dialokasikan deterministik ke baris dengan basis terbesar (tie-break ID item terkecil) sehingga jumlah alokasi tepat sama dengan diskon header. | `DiscountEngineTest` |
+| **BR-SALE-04** | Limit Diskon Kasir & Maker-Checker | Kasir dibatasi limit diskon maksimal (persen/nominal). Diskon yang melebihi batas wewenang kasir mewajibkan otorisasi supervisor/admin dengan verifikasi kata sandi aktif. Prinsip **Maker-Checker** ditegakkan: kasir dilarang mengotorisasi diskon khusus miliknya sendiri. | `DiscountEngineTest` |
+| **BR-SALE-05** | Atomisitas Checkout Tunai & Snapshot Historis | Checkout tunai dieksekusi dalam satu transaksi basis data atomik (`DB::transaction`) dengan mengunci akun kas dan baris persediaan (`lockForUpdate`). Transaksi mencatat snapshot profil toko (`store_snapshot`), data produk, satuan, dan HPP modal rata-rata (`cost_price_snapshot`) pada saat transaksi disahkan. | `CashSaleCheckoutTest`, `SaleConcurrencyTest` |
+| **BR-SALE-06** | Pengakuan Arus Kas Sebesar Grand Total | Mutasi penerimaan kas masuk (`IN_SALE`) dicatat tepat sebesar nilai bersih transaksi (`grand_total`), **bukan** sebesar uang yang diserahkan pelanggan (`cash_tendered`). Uang tender hanya digunakan untuk memvalidasi `cash_tendered >= grand_total` dan menghitung kembalian (`change_amount = cash_tendered - grand_total`). | `CashSaleCheckoutTest` |
+| **BR-SALE-07** | Penegakan Idempotensi Mutlak | Setiap permintaan checkout wajib menyertakan `Idempotency-Key`. Permintaan berulang dengan key dan payload yang sama mengembalikan data transaksi asli tanpa menciptakan mutasi kas atau pemotongan stok ganda. Permintaan dengan key sama namun payload berbeda ditolak dengan `IdempotencyConflictException` (HTTP 409 Conflict). Jika koneksi peramban terputus setelah commit, status transaksi dapat ditelusuri via key. | `SaleIdempotencyTest` |
+| **BR-SALE-08** | Struk Thermal Snapshot & Cetak Ulang Bebas Mutasi | Format struk mendukung ukuran kertas thermal 58 mm dan 80 mm berbasis data snapshot saat transaksi. Cetak ulang (*reprint*) menampilkan penanda salinan resmi tanpa pernah memicu transaksi baru, mutasi kas kedua, atau pemotongan persediaan tambahan. | `SaleHistoryAndReceiptTest` |
+| **BR-SALE-09** | Isolasi Riwayat Penjualan Kasir (Anti-IDOR) | Pengguna dengan peran kasir hanya diizinkan melihat riwayat transaksi miliknya sendiri (`sales.view_own`). Percobaan membuka transaksi kasir lain diblokir dengan HTTP 403 Forbidden. Izin `sales.view_all` diperlukan untuk melihat transaksi lintas kasir. | `SaleHistoryAndReceiptTest`, `AuthorizationTest` |
+
 
 

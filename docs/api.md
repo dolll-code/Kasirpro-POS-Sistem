@@ -2,10 +2,10 @@
 
 | Metadata | Nilai |
 |---|---|
-| Status | **Diimplementasikan (Tahap 06 — Selesai)** |
+| Status | **Diimplementasikan (Tahap 07 — Selesai)** |
 | Base URL | `http://localhost:8000` |
 | Autentikasi | Cookie-based Session (`SameSite=Lax`, CSRF Protected) |
-| Terakhir Ditinjau | 2026-11-18 |
+| Terakhir Ditinjau | 2026-11-19 |
 | Sumber Terkait | `prd.md` (§11), `routes/web.php` |
 
 ---
@@ -222,5 +222,100 @@
 | `GET` | `/api/v1/purchases/{purchase}/receipts/{receipt}` | `api.purchases.receipts.show` | `purchases.view` | Mengambil rincian nota penerimaan dan alokasi landed cost per item |
 | `POST` | `/api/v1/purchases/{purchase}/payments` | `api.purchases.payments.store` | `purchases.create` | Mencatat pembayaran utang pemasok via API (memvalidasi batas utang barang diterima) |
 | `POST` | `/api/v1/purchases/{purchase}/payments/{payment}/reverse` | `api.purchases.payments.reverse` | `purchases.create` | Membalikkan transaksi pembayaran pemasok via API (wajib field `reason`) |
+
+---
+
+## 7. Katalog Rute POS, Penjualan Tunai, Diskon & Struk (Tahap 07)
+
+### 7.1 Rute Antarmuka Web POS & Penjualan (Sales)
+| Method | Rute URI | Nama Rute | Izin (Permission) | Deskripsi |
+|---|---|---|---|---|
+| `GET` | `/pos` | `pos.index` | `sales.create` | Antarmuka kasir layar penuh (pencarian, barcode USB wedge, katalog, keranjang, diskon, pembayaran tunai) |
+| `POST` | `/pos/calculate` | `pos.calculate` | `sales.create` | Endpoint kalkulasi total keranjang belanja server-authoritative live preview |
+| `POST` | `/pos/checkout` | `pos.checkout` | `sales.create` | Memproses checkout pembayaran tunai secara atomik dengan Idempotency-Key |
+| `GET` | `/pos/barcode/{barcode}` | `pos.barcode` | `sales.create` | Endpoint pencarian barcode cepat USB scanner dengan pengembalian fokus otomatis |
+| `GET` | `/sales` | `sales.index` | `sales.view_own` / `sales.view_all` | Riwayat transaksi penjualan kasir (kasir hanya transaksi sendiri, admin/supervisor semua) |
+| `GET` | `/sales/idempotency/{key}` | `sales.idempotency` | `sales.view_own` / `sales.view_all` | Pemeriksaan status transaksi berdasarkan Idempotency-Key setelah insiden timeout |
+| `GET` | `/sales/{sale}` | `sales.show` | `sales.view_own` / `sales.view_all` | Rincian lengkap transaksi penjualan, rincian diskon, pembayaran tunai, dan HPP snapshot |
+| `GET` | `/sales/{sale}/receipt` | `sales.receipt` | `sales.view_own` / `sales.view_all` | Tampilan struk belanja siap cetak format thermal 58 mm / 80 mm dan penanda cetak ulang |
+
+### 7.2 Endpoint JSON API (`/api/v1/sales/*` & `/api/v1/products/barcode/*`)
+| Method | Rute URI | Nama Rute | Izin (Permission) | Deskripsi |
+|---|---|---|---|---|
+| `POST` | `/api/v1/sales/calculate` | `api.sales.calculate` | `sales.create` | Menghitung subtotal, diskon baris, alokasi diskon transaksi, dan grand total di server |
+| `POST` | `/api/v1/sales/checkout` | `api.sales.checkout` | `sales.create` | Checkout tunai transaksi penjualan via API (header `Idempotency-Key: UUID`) |
+| `GET` | `/api/v1/sales` | `api.sales.index` | `sales.view_own` / `sales.view_all` | Daftar transaksi penjualan terpaginasi format JSON |
+| `GET` | `/api/v1/sales/idempotency/{key}` | `api.sales.idempotency` | `sales.view_own` / `sales.view_all` | Mengambil status transaksi via Idempotency-Key (pencegahan double checkout akibat timeout) |
+| `GET` | `/api/v1/sales/{sale}` | `api.sales.show` | `sales.view_own` / `sales.view_all` | Rincian data transaksi penjualan dan rincian item format JSON |
+| `GET` | `/api/v1/products/barcode/{barcode}` | `api.products.barcode` | `products.view` | Lookup produk aktif via barcode untuk integrasi perangkat kasir |
+
+### 7.3 Contoh Kontrak Payload & Respons Checkout Tunai
+
+#### Request: `POST /api/v1/sales/checkout`
+Header:
+- `Content-Type: application/json`
+- `X-CSRF-TOKEN: <token>`
+- `Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000`
+
+Body:
+```json
+{
+  "items": [
+    {
+      "product_id": 1,
+      "quantity": "2.000",
+      "line_discount_type": "amount",
+      "line_discount_value": "1000.00"
+    }
+  ],
+  "transaction_discount_type": "percent",
+  "transaction_discount_value": "5.00",
+  "payment": {
+    "method": "cash",
+    "cash_account_id": 1,
+    "cash_tendered": "100000.00"
+  },
+  "discount_approval": {
+    "approver_id": 2,
+    "approver_password": "supervisor_secret",
+    "reason": "Diskon khusus hari kemerdekaan"
+  },
+  "idempotency_key": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+#### Response Sukses (201 Created):
+```json
+{
+  "message": "Transaksi penjualan berhasil diproses.",
+  "data": {
+    "id": 10,
+    "transaction_number": "TRX-20261119-00001",
+    "gross_total": "50000.00",
+    "item_discount_total": "2000.00",
+    "transaction_discount_total": "2400.00",
+    "grand_total": "45600.00",
+    "cash_tendered": "100000.00",
+    "change_amount": "54400.00",
+    "completed_at": "2026-11-19T17:00:00+07:00",
+    "receipt_url": "http://localhost:8000/sales/10/receipt",
+    "items_count": 1
+  }
+}
+```
+
+#### Response Replay Idempotent (Key Sama & Payload Sama):
+Mengembalikan status HTTP 201 Created dengan nomor transaksi dan nilai yang identik tanpa menciptakan mutasi baru.
+
+#### Response Konflik Idempotent (Key Sama & Payload Berbeda - 409 Conflict):
+```json
+{
+  "error": {
+    "code": "IDEMPOTENCY_CONFLICT",
+    "message": "Idempotency-Key [550e8400-e29b-41d4-a716-446655440000] telah digunakan sebelumnya dengan parameter pesanan berbeda."
+  }
+}
+```
+
 
 

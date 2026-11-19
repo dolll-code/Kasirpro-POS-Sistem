@@ -2,10 +2,10 @@
 
 | Metadata | Nilai |
 |---|---|
-| Status | **Diimplementasikan (Tahap 06 — Selesai)** |
+| Status | **Diimplementasikan (Tahap 07 — Selesai)** |
 | Engine | **MySQL 8.0 / InnoDB** |
 | Collation | `utf8mb4_unicode_ci` |
-| Terakhir Ditinjau | 2026-11-18 |
+| Terakhir Ditinjau | 2026-11-19 |
 | Sumber Terkait | `prd.md` (§10), `database/migrations/*` |
 
 ---
@@ -527,5 +527,97 @@ Catatan pengeluaran kas/bank untuk pembayaran utang dagang pemasok atas barang d
 
 **CHECK Constraints:**
 - `amount > 0` (`chk_supp_pay_amount_pos`)
+
+---
+
+## 8. Struktur Tabel Penjualan, Item & Pembayaran Kasir (Tahap 07)
+
+### 8.1 Tabel `sales`
+Dokumen utama transaksi penjualan kasir (POS) yang mencatat total belanja, diskon, status pembayaran, dan snapshot identitas toko.
+
+| Kolom | Tipe Data | Nullable | Keterangan / Constraint |
+|---|---|:---:|---|
+| `id` | `BIGINT UNSIGNED` | Tidak | Primary Key, Auto Increment |
+| `transaction_number` | `VARCHAR(100)` | Tidak | **UNIQUE** (`TRX-YYYYMMDD-XXXXX`) |
+| `cashier_id` | `BIGINT UNSIGNED` | Tidak | Foreign Key -> `users.id` (**`ON DELETE RESTRICT`**) |
+| `sale_status` | `VARCHAR(50)` | Tidak | Default `completed` (`pending_payment`, `completed`, `cancelled`, `partially_returned`, `fully_returned`) |
+| `payment_status` | `VARCHAR(50)` | Tidak | Default `paid` (`pending_verification`, `paid`, `refund_due`, `refunded`, `rejected`) |
+| `gross_total` | `DECIMAL(15,2)` | Tidak | Total kotor sebelum diskon |
+| `item_discount_total` | `DECIMAL(15,2)` | Tidak | Total potongan diskon level baris item |
+| `transaction_discount_total` | `DECIMAL(15,2)` | Tidak | Total potongan diskon level dokumen transaksi |
+| `grand_total` | `DECIMAL(15,2)` | Tidak | Nilai bersih akhir tagihan transaksi |
+| `store_snapshot` | `JSON` | Tidak | Salinan permanen nama toko, alamat, telepon, footer & lebar struk saat transaksi |
+| `idempotency_key` | `VARCHAR(64)` | Tidak | **UNIQUE**, kunci pencegah transaksi checkout ganda |
+| `payload_hash` | `VARCHAR(64)` | Tidak | Hash SHA-256 parameter pesanan untuk deteksi payload conflict |
+| `discount_approved_by` | `BIGINT UNSIGNED` | Ya | Foreign Key -> `users.id` (**`ON DELETE SET NULL`**), supervisor otorisator diskon khusus |
+| `discount_override_reason` | `VARCHAR(255)` | Ya | Alasan pemberian diskon khusus supervisor |
+| `completed_at` | `TIMESTAMP` | Ya | **INDEX**, waktu penyelesaian dan pengakuan penjualan |
+| `cancelled_at` | `TIMESTAMP` | Ya | Waktu pembatalan pesanan |
+| `cancellation_reason` | `VARCHAR(255)` | Ya | Alasan pembatalan transaksi |
+| `notes` | `TEXT` | Ya | Catatan kasir |
+| `created_at` / `updated_at` | `TIMESTAMP` | Ya | Timestamps |
+
+**Indeks:**
+- `INDEX (sale_status, completed_at)`
+- `INDEX (cashier_id, completed_at)`
+
+**CHECK Constraints:**
+- `gross_total >= 0`, `item_discount_total >= 0`, `transaction_discount_total >= 0`, `grand_total >= 0`
+
+---
+
+### 8.2 Tabel `sale_items`
+Rincian setiap item barang yang terjual, mencakup harga jual, kuantitas, alokasi diskon, dan snapshot HPP modal persediaan.
+
+| Kolom | Tipe Data | Nullable | Keterangan / Constraint |
+|---|---|:---:|---|
+| `id` | `BIGINT UNSIGNED` | Tidak | Primary Key, Auto Increment |
+| `sale_id` | `BIGINT UNSIGNED` | Tidak | Foreign Key -> `sales.id` (**`ON DELETE CASCADE`**) |
+| `product_id` | `BIGINT UNSIGNED` | Tidak | Foreign Key -> `products.id` (**`ON DELETE RESTRICT`**) |
+| `product_name_snapshot` | `VARCHAR(255)` | Tidak | Nama produk saat transaksi disahkan |
+| `sku_snapshot` | `VARCHAR(100)` | Tidak | SKU produk saat transaksi |
+| `barcode_snapshot` | `VARCHAR(100)` | Ya | Barcode produk saat transaksi |
+| `unit_name_snapshot` | `VARCHAR(50)` | Tidak | Simbol satuan kuantitas saat transaksi |
+| `quantity` | `DECIMAL(15,3)` | Tidak | Kuantitas barang yang terjual (wajib > 0) |
+| `unit_price_snapshot` | `DECIMAL(15,2)` | Tidak | Harga jual per unit resmi dari server |
+| `gross_line_total` | `DECIMAL(15,2)` | Tidak | Nilai kotor baris (`quantity * unit_price_snapshot`) |
+| `line_discount` | `DECIMAL(15,2)` | Tidak | Default `0.00`, potongan diskon langsung pada baris item |
+| `allocated_transaction_discount` | `DECIMAL(15,2)` | Tidak | Default `0.00`, bagian diskon transaksi header yang dialokasikan ke baris ini |
+| `net_line_total` | `DECIMAL(15,2)` | Tidak | Nilai bersih baris (`gross_line_total - line_discount - allocated_transaction_discount`) |
+| `cost_price_snapshot` | `DECIMAL(15,2)` | Tidak | Nilai HPP modal rata-rata per unit saat transaksi |
+| `cost_total_snapshot` | `DECIMAL(15,2)` | Tidak | Total HPP belanjaan barang (`quantity * cost_price_snapshot`) |
+| `created_at` / `updated_at` | `TIMESTAMP` | Ya | Timestamps |
+
+**CHECK Constraints:**
+- `quantity > 0`
+- `unit_price_snapshot >= 0`, `gross_line_total >= 0`, `line_discount >= 0`, `allocated_transaction_discount >= 0`, `net_line_total >= 0`, `cost_price_snapshot >= 0`, `cost_total_snapshot >= 0`
+
+---
+
+### 8.3 Tabel `sale_payments`
+Catatan pembayaran kasir yang menghubungkan transaksi penjualan dengan akun kas penerima uang dan pergerakan kas buku besar.
+
+| Kolom | Tipe Data | Nullable | Keterangan / Constraint |
+|---|---|:---:|---|
+| `id` | `BIGINT UNSIGNED` | Tidak | Primary Key, Auto Increment |
+| `sale_id` | `BIGINT UNSIGNED` | Tidak | **UNIQUE**, Foreign Key -> `sales.id` (**`ON DELETE RESTRICT`**) |
+| `payment_method` | `VARCHAR(50)` | Tidak | Metode pembayaran (`cash`, `bank_transfer`) |
+| `cash_account_id` | `BIGINT UNSIGNED` | Ya | Foreign Key -> `cash_accounts.id` (**`ON DELETE RESTRICT`**) |
+| `amount` | `DECIMAL(15,2)` | Tidak | Nominal pembayaran bersih yang diakui masuk kas (harus sama dengan `grand_total`) |
+| `cash_tendered` | `DECIMAL(15,2)` | Ya | Uang tunai yang diserahkan oleh pelanggan di kasir |
+| `change_amount` | `DECIMAL(15,2)` | Ya | Uang kembalian yang diserahkan kembali ke pelanggan |
+| `reference_number` | `VARCHAR(100)` | Ya | Nomor referensi pembayaran atau kuitansi manual |
+| `verification_status` | `VARCHAR(50)` | Tidak | Default `verified` (`pending`, `verified`, `rejected`) |
+| `verified_by` | `BIGINT UNSIGNED` | Ya | Foreign Key -> `users.id` (**`ON DELETE RESTRICT`**) |
+| `verified_at` | `TIMESTAMP` | Ya | Waktu pengesahan verifikasi pembayaran |
+| `paid_at` | `TIMESTAMP` | Ya | Waktu diterimanya pembayaran secara nyata |
+| `cash_movement_id` | `BIGINT UNSIGNED` | Ya | **UNIQUE**, Foreign Key -> `cash_movements.id` (**`ON DELETE RESTRICT`**) |
+| `created_at` / `updated_at` | `TIMESTAMP` | Ya | Timestamps |
+
+**CHECK Constraints:**
+- `amount >= 0`
+- `cash_tendered >= amount` (untuk pembayaran tunai)
+- `change_amount = (cash_tendered - amount)`
+
 
 

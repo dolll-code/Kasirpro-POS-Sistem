@@ -234,12 +234,15 @@ class ProductController extends Controller
             return response()->json(['data' => []]);
         }
 
+        $term = trim($query);
+
         $products = Product::query()
             ->active()
             ->whereHas('category', fn ($q) => $q->where('is_active', true))
             ->whereHas('unit', fn ($q) => $q->where('is_active', true))
-            ->search($query)
-            ->with(['category:id,name', 'unit:id,name,symbol,decimal_precision', 'inventoryBalance'])
+            ->search($term)
+            ->with(['category:id,name,is_active', 'unit:id,name,symbol,decimal_precision,is_active', 'inventoryBalance'])
+            ->orderByRaw('CASE WHEN barcode = ? THEN 0 WHEN sku = ? THEN 1 WHEN name = ? THEN 2 ELSE 3 END', [$term, $term, $term])
             ->limit(20)
             ->get();
 
@@ -251,6 +254,10 @@ class ProductController extends Controller
                 'name' => $p->name,
                 'selling_price' => (string) $p->selling_price,
                 'category_name' => $p->category?->name,
+                'unit' => [
+                    'symbol' => $p->unit?->symbol,
+                    'decimal_precision' => $p->unit?->decimal_precision ?? 0,
+                ],
                 'unit_symbol' => $p->unit?->symbol,
                 'decimal_precision' => $p->unit?->decimal_precision ?? 0,
                 'quantity_on_hand' => $p->quantity_on_hand,

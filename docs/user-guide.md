@@ -2,9 +2,9 @@
 
 | Metadata | Nilai |
 |---|---|
-| Modul | **Master Data, Buku Kas, Persediaan, & Pengadaan Barang (Tahap 06)** |
+| Modul | **Master Data, Buku Kas, Persediaan, Pengadaan & POS Kasir (Tahap 07)** |
 | Target Pembaca | Pemilik Toko (Admin), Pengawas Operasional (Supervisor), Kasir |
-| Terakhir Ditinjau | 2026-11-18 |
+| Terakhir Ditinjau | 2026-11-19 |
 
 ---
 
@@ -264,5 +264,104 @@ KasirPro menerapkan prinsip akuntansi kehati-hatian: **Utang usaha hanya terbent
 1. **Pembatalan Total:** Jika pesanan masih berstatus `draft` atau `ordered` dan barang belum pernah dikirimkan sama sekali, PO dapat dibatalkan sepenuhnya melalui tombol **Batalkan PO**.
 2. **Penutupan Sisa Order (Partial Cancel):** Jika sebagian barang sudah diterima namun sisa pesanan tidak dapat dikirimkan lagi oleh pihak distributor (misal stok pabrik kosong), pengguna dapat menutup sisa pesanan dengan mengklik tombol **Tutup Sisa Pesanan**.
 3. **Syarat Pembatalan:** Sistem mewajibkan pengisian **Alasan Pembatalan / Penutupan** demi keperluan audit pengawasan usaha. Sisa barang yang belum terkirim otomatis diabaikan, dan status PO ditandai sebagai `cancelled`.
+
+---
+
+## 11. Panduan Pengoperasian Mesin Kasir POS, Diskon, Pembayaran Tunai & Struk (Tahap 07)
+
+### 11.1 Membuka Mesin Kasir (`/pos`)
+Pengguna dengan izin `sales.create` (Kasir, Supervisor, atau Admin) dapat mengakses antarmuka kasir melalui navigasi sidebar menu **POS Kasir** atau URL `/pos`. Antarmuka didesain khusus mode layar penuh (*full landscape view*) dengan dua kolom:
+- **Panel Kiri (Katalog & Input Barcode):** Area pencarian cepat produk, pemindaian barcode USB, filter kategori, dan kartu katalog produk.
+- **Panel Kanan (Keranjang & Pembayaran):** Rincian item belanjaan, pengaturan kuantitas, input diskon per item & diskon nota, ringkasan subtotal & grand total real-time, serta panel pembayaran tunai.
+
+---
+
+### 11.2 Operasi Barcode Scanner USB HID (Keyboard Wedge)
+KasirPro mendukung perangkat pemindai barcode USB standar tanpa perlu instalasi driver tambahan:
+1. Masukkan kursor atau pastikan fokus berada pada kotak input **Scan barcode USB [Enter]...**.
+2. Arahkan laser scanner ke barcode kemasan barang.
+3. Scanner akan mengirimkan deretan karakter kode diikuti penekanan tombol **Enter**.
+4. **Hasil Pemindaian:**
+   - **Barcode Terdaftar & Aktif:** Produk otomatis ditambahkan ke keranjang belanja (jika sudah ada, kuantitas bertambah +1). Banner konfirmasi hijau muncul dan fokus kursor scanner dipulihkan seketika.
+   - **Barcode Tidak Dikenal atau Nonaktif:** Sistem menampilkan banner galat merah (*"Produk dengan barcode [...] tidak ditemukan atau sedang nonaktif"*), tidak menambahkan item ke keranjang, dan fokus kursor langsung dipulihkan agar kasir dapat memindai barang berikutnya tanpa menyentuh mouse.
+5. **Pencegahan Item Ganda:** Input teks barcode segera dibersihkan seketika saat event Enter diterima untuk mencegah pemicuan ganda akibat pembacaan berulang yang tidak disengaja.
+
+---
+
+### 11.3 Pencarian Produk Manual & Filter Kategori
+Jika barcode pada kemasan rusak atau produk tidak memiliki barcode:
+1. **Pencarian Kata Kunci:** Ketikkan nama produk atau kode SKU pada kotak pencarian **Cari nama atau SKU...**. Daftar produk akan disaring secara otomatis dengan jeda *debounce* 300 ms.
+2. **Filter Kategori:** Klik tombol kategori (*pill filter*) di bawah bilah pencarian untuk menyaring barang berdasarkan kelompok jenis (misal: *Minuman*, *Makanan Ringan*).
+3. **Memilih Barang:** Klik kartu produk yang diinginkan untuk memasukkannya ke dalam keranjang. Produk yang stoknya habis (`available = 0`) otomatis dinonaktifkan (*disabled*) dan tidak dapat diklik.
+
+---
+
+### 11.4 Pengaturan Kuantitas & Diskon Baris Item
+1. **Pengaturan Kuantitas:**
+   - Gunakan tombol **+** atau **-** pada baris keranjang untuk menambah atau mengurangi kuantitas belanjaan.
+   - Atau ketikkan kuantitas secara langsung pada kolom input kuantitas.
+   - **Validasi Presisi:** Kuantitas pecahan yang diinputkan akan divalidasi terhadap presisi desimal satuan barang (contoh: produk bersatuan `pcs` hanya menerima angka bulat).
+2. **Pemberian Diskon per Item:**
+   - Pilih jenis diskon: **Rp** (potongan nominal) atau **%** (potongan persentase).
+   - Masukkan nilai diskon pada kolom di sampingnya.
+   - Nilai diskon baris dilarang bernilai negatif dan tidak dapat melebihi nilai kotor baris barang tersebut.
+
+---
+
+### 11.5 Diskon Transaksi & Otorisasi Supervisor (Maker-Checker)
+1. **Diskon Nota (Transaction Discount):**
+   - Pada bagian bawah keranjang, kasir dapat memasukkan diskon transaksi header (pilih format **Rp** atau **%**).
+   - Diskon ini akan dialokasikan secara proporsional ke seluruh item belanjaan oleh server secara matematis, dengan selisih pembulatan desimal dialokasikan deterministik ke item bernilai terbesar.
+2. **Batas Kewenangan Kasir (*Discount Limits*):**
+   - Kasir memiliki batas diskon maksimal standar (default: maksimal 10% atau Rp 50.000 per item, dan maksimal 10% atau Rp 100.000 per transaksi).
+3. **Otorisasi Supervisor (*Maker-Checker Modal*):**
+   - Apabila kasir memasukkan diskon yang melampaui batas kewenangan, sistem akan menahan proses dan memunculkan jendela sembulan (*modal*) **Otorisasi Diskon Khusus Supervisor**.
+   - Supervisor atau Admin harus memilih nama akunnya, memasukkan kata sandi autentikasi yang sah, serta menuliskan alasan pemberian diskon.
+   - **Prinsip Maker-Checker:** Kasir **dilarang keras** mengotorisasi diskon khusus untuk transaksinya sendiri.
+
+---
+
+### 11.6 Pembayaran Tunai & Perhitungan Kembalian
+1. **Pilihan Akun Kas:** Kasir dapat memilih akun kas penerima uang (default terarah ke *Kas Toko*).
+2. **Input Uang Diterima (Tender):**
+   - Kasir dapat mengetikkan nominal uang tunai yang diserahkan pelanggan pada kolom **Uang Tunai Diterima (Tender)**.
+   - Tersedia tombol cepat: **Uang Pas** (mengisi tepat sebesar Grand Total), **Rp 50.000**, dan **Rp 100.000**.
+3. **Perhitungan Kembalian:**
+   - Sistem langsung menghitung dan menampilkan nilai kembalian secara mencolok pada kotak **Uang Kembalian**.
+   - Jika uang tunai yang diserahkan kurang dari Grand Total, tombol **Selesaikan Transaksi** otomatis dinonaktifkan dengan peringatan bahwa uang pembayaran kurang.
+4. **Menyelesaikan Transaksi:**
+   - Klik tombol **Selesaikan Transaksi (Tunai)**.
+   - Sistem mengirimkan payload terenkripsi beserta header `Idempotency-Key` (UUIDv4) untuk menjamin tidak terjadi transaksi ganda.
+   - **Dampak Pembukuan Otomatis:**
+     - Saldo persediaan fisik berkurang via mutasi `OUT_SALE`.
+     - HPP modal rata-rata tercatat permanen pada item penjualan (`cost_price_snapshot`).
+     - Kas masuk dicatat tepat sebesar **Grand Total** (`IN_SALE`), bukan sebesar uang tender.
+     - Jendela konfirmasi sukses muncul menampilkan nomor transaksi resmi dan tombol cetak struk.
+
+---
+
+### 11.7 Pencetakan Struk Thermal & Cetak Ulang (Reprint)
+1. **Cetak Struk Langsung:**
+   - Setelah checkout berhasil, klik tombol **Cetak Bukti Struk**.
+   - Dialog cetak peramban (*browser print dialog*) otomatis terbuka.
+2. **Ukuran Kertas Thermal:**
+   - Sistem mendukung layout thermal **58 mm** (default minimarket) dan **80 mm** (lebar). Pengguna dapat beralih ukuran melalui tautan di bagian atas pratinjau struk.
+3. **Snapshot Toko:**
+   - Struk menggunakan data identitas toko saat transaksi disahkan (nama toko, alamat, telepon, dan catatan kaki struk), sehingga perubahan profil toko di masa depan tidak mengubah keaslian struk historis.
+4. **Cetak Ulang (Reprint):**
+   - Struk yang dicetak ulang dari halaman riwayat transaksi secara otomatis menampilkan penanda khusus: `*** SALINAN / REPRINT ***`.
+   - **Jaminan Integritas:** Tindakan cetak ulang struk sama sekali tidak memicu mutasi stok atau mutasi kas baru.
+
+---
+
+### 11.8 Melihat Riwayat Transaksi Penjualan (`/sales`)
+1. Buka menu **Riwayat Penjualan** (`/sales`).
+2. **Kartu Ringkasan KPI:** Menampilkan omset penjualan hari ini, jumlah transaksi selesai hari ini, dan total diskon toko hari ini.
+3. **Penyaringan Data:** Riwayat dapat difilter berdasarkan nomor transaksi, rentang tanggal (dari/sampai), dan filter kasir (hanya untuk Admin/Supervisor).
+4. **Isolasi Hak Akses (Anti-IDOR):**
+   - Kasir biasa hanya dapat melihat riwayat transaksi miliknya sendiri.
+   - Supervisor dan Admin yang memiliki izin `sales.view_all` dapat memantau transaksi seluruh kasir.
+5. **Rincian Transaksi:** Klik nomor transaksi untuk melihat rincian barang, harga jual, alokasi diskon, HPP modal (khusus Admin), akun kas penerima uang, dan waktu transaksi.
+
 
 

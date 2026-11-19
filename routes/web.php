@@ -158,4 +158,38 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('/{purchase}/payments/{payment}/reverse', [SupplierPaymentController::class, 'reverse'])->name('payments.reverse');
         });
     });
+
+    // POS & Cash Sales (PRD §5.5, §6.4, §11.3)
+    Route::middleware('permission:sales.create')->group(function () {
+        Route::get('/pos', [\App\Http\Controllers\PosController::class, 'index'])->name('pos.index');
+        Route::post('/pos/calculate', [\App\Http\Controllers\PosController::class, 'calculate'])->name('pos.calculate');
+        Route::post('/pos/checkout', [\App\Http\Controllers\PosController::class, 'checkout'])->name('pos.checkout');
+        Route::get('/pos/barcode/{barcode}', [\App\Http\Controllers\PosController::class, 'barcodeLookup'])->name('pos.barcode');
+    });
+
+    // Sales History & Receipts (PRD §5.5, §6.4, §6.5)
+    Route::middleware('permission:sales.view_all|sales.view_own')->group(function () {
+        Route::get('/sales', [\App\Http\Controllers\SaleController::class, 'index'])->name('sales.index');
+        Route::get('/sales/idempotency/{key}', [\App\Http\Controllers\SaleController::class, 'checkByIdempotencyKey'])->name('sales.idempotency');
+        Route::get('/sales/{sale}', [\App\Http\Controllers\SaleController::class, 'show'])->name('sales.show');
+        Route::get('/sales/{sale}/receipt', [\App\Http\Controllers\SaleController::class, 'receipt'])->name('sales.receipt');
+    });
+
+    // POS & Sales JSON API (PRD §11.3)
+    Route::prefix('api/v1')->group(function () {
+        Route::middleware('permission:sales.create')->group(function () {
+            Route::post('/sales/calculate', [\App\Http\Controllers\PosController::class, 'calculate'])->name('api.sales.calculate');
+            Route::post('/sales/checkout', [\App\Http\Controllers\PosController::class, 'checkout'])->name('api.sales.checkout');
+        });
+
+        Route::middleware('permission:sales.view_all|sales.view_own')->group(function () {
+            Route::get('/sales', [\App\Http\Controllers\SaleController::class, 'index'])->name('api.sales.index');
+            Route::get('/sales/idempotency/{key}', [\App\Http\Controllers\SaleController::class, 'checkByIdempotencyKey'])->name('api.sales.idempotency');
+            Route::get('/sales/{sale}', [\App\Http\Controllers\SaleController::class, 'show'])->name('api.sales.show');
+        });
+
+        Route::middleware('permission:products.view')->group(function () {
+            Route::get('/products/barcode/{barcode}', [\App\Http\Controllers\PosController::class, 'barcodeLookup'])->name('api.products.barcode');
+        });
+    });
 });
