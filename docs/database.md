@@ -664,4 +664,29 @@ Rincian kuantitas yang ditahan per produk untuk satu reservasi.
 - Reject/cancel/expiry mengurangi `quantity_reserved`, tidak mengubah on-hand, dan tidak membuat cash movement.
 - Scheduler `sales:expire-reservations` memproses reservasi aktif dengan `expires_at <= now()`; state sale/payment menjadi `cancelled`/`expired`.
 
+## 9. Sales returns dan refund
+
+### 9.1 `sales_returns`
+
+Header retur, approval, pengakuan revenue, dan status refund. `approved_at` adalah tanggal pengakuan P&L; `completed_at`/`return_payments.paid_at` menandai payout aktual.
+
+| Kolom utama | Keterangan |
+|---|---|
+| `return_number` | Nomor dokumen `RET-YYYYMMDD-xxxxx`, unique |
+| `sale_id`, `requested_by`, `approved_by` | Sale asal dan identitas maker/checker |
+| `status` | `pending_approval`, `rejected`, `approved`, `completed` |
+| `refund_status` | `due` atau `paid`, independen dari sale status |
+| `reason`, `notes`, `approval_note`, `admin_override_reason` | Alasan dan catatan audit |
+| `return_total` | Nilai refund penuh dari snapshot item penjualan |
+| `requested_at`, `approved_at`, `rejected_at`, `completed_at` | Timestamp lifecycle retur |
+
+### 9.2 `sales_return_items`
+
+Menyimpan condition, quantity, `selling_price_snapshot`, diskon item, alokasi diskon transaksi, net unit price, `cost_price_snapshot`, `return_value`, `cost_value`, dan `damaged_loss`. Snapshot tidak membaca harga/HPP master. Aggregate pending/approved/completed mengunci kuantitas returnable; rejected melepas kuantitas.
+
+### 9.3 `return_payments`
+
+Unique satu payout penuh per return melalui unique `sales_return_id` dan `cash_movement_id`. Cash movement `OUT_RETURN_REFUND` memakai source `return_payment`; `paid_at` adalah tanggal cash flow.
+
+Approval resellable membuat `IN_RETURN_RESELLABLE` dengan cost historis dan moving average recalculation. Damaged return tidak menambah stok; cost dicatat sebagai indikator loss dan tidak mengurangi net COGS lagi.
 

@@ -408,4 +408,22 @@ Hanya Admin/Supervisor dengan izin `payments.verify_transfer` dapat membuka menu
 | `cancelled` | `rejected` | Verifier menolak atau transaksi dibatalkan; reservasi dilepas |
 | `cancelled` | `expired` | TTL habis; reservasi dilepas otomatis dan verifikasi tidak dapat dipaksakan |
 
+## 13. Retur penjualan dan refund
 
+### Mengajukan retur
+1. Buka Riwayat Penjualan dan pilih sale `completed` atau `partially_returned`.
+2. Klik **Ajukan Retur**, pilih item, isi quantity, kondisi **Layak jual** atau **Rusak**, serta alasan wajib. Catatan tambahan opsional.
+3. Pengajuan `pending_approval` mengunci quantity dari pengajuan lain. Snapshot harga, diskon, dan HPP berasal dari transaksi asli.
+4. Pengajuan belum mengubah revenue, stok, atau kas.
+
+### Approval dan rejection
+1. Buka menu **Retur & Refund**, lalu periksa detail dan timeline.
+2. Approver berbeda dari requester memilih approve atau reject; penolakan wajib mencantumkan alasan.
+3. Admin yang memutuskan request sendiri wajib menulis alasan override, yang dicatat di audit.
+4. Approval mengakui retur pada `approved_at`. Barang layak jual kembali ke on-hand dengan HPP historis; barang rusak tidak menambah stok. Approval tidak membayar refund.
+
+### Pembayaran refund
+1. Retur approved dapat dibayar oleh user berizin `returns.refund`.
+2. Pilih akun kas/bank, masukkan referensi bila ada, dan waktu pembayaran aktual. Refund dibayar penuh sekaligus; saldo akun harus cukup.
+3. Satu retur hanya dapat dibayar satu kali. `approved_at` menjadi tanggal pengakuan P&L; `paid_at` menjadi tanggal cash flow.
+4. Riwayat sale dan halaman **Retur & Refund** menampilkan kondisi, snapshot nilai, keputusan, payment, dan timeline.

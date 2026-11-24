@@ -12,6 +12,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\PurchaseReceiptController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\StoreProfileController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierPaymentController;
@@ -184,6 +185,18 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/sales/{sale}/verify-transfer', [SaleController::class, 'verifyTransfer'])->name('sales.verify_transfer');
     });
 
+    Route::prefix('sales-returns')->name('sales-returns.')->group(function () {
+        Route::get('/', [SalesReturnController::class, 'index'])->middleware('permission:returns.request|returns.approve|returns.refund')->name('index');
+        Route::get('/{salesReturn}', [SalesReturnController::class, 'show'])->middleware('permission:returns.request|returns.approve|returns.refund')->name('show');
+        Route::post('/{salesReturn}/decision', [SalesReturnController::class, 'decide'])->middleware('permission:returns.approve')->name('decide');
+        Route::post('/{salesReturn}/refund', [SalesReturnController::class, 'pay'])->middleware('permission:returns.refund')->name('pay');
+    });
+
+    Route::middleware('permission:returns.request')->group(function () {
+        Route::get('/sales/{sale}/returns/create', [SalesReturnController::class, 'create'])->name('sales-returns.create');
+        Route::post('/sales/{sale}/returns', [SalesReturnController::class, 'store'])->name('sales-returns.store');
+    });
+
     // POS & Sales JSON API (PRD §11.3)
     Route::prefix('api/v1')->group(function () {
         Route::middleware('permission:sales.create')->group(function () {
@@ -201,6 +214,17 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::middleware('permission:payments.verify_transfer')->group(function () {
             Route::get('/sales/transfers/pending', [SaleController::class, 'pendingTransfers'])->name('api.sales.transfers.pending');
             Route::post('/sales/{sale}/verify-transfer', [SaleController::class, 'verifyTransfer'])->name('api.sales.verify_transfer');
+        });
+
+        Route::prefix('sales/returns')->name('api.sales-returns.')->group(function () {
+            Route::get('/', [SalesReturnController::class, 'index'])->middleware('permission:returns.request|returns.approve|returns.refund')->name('index');
+            Route::get('/{salesReturn}', [SalesReturnController::class, 'show'])->middleware('permission:returns.request|returns.approve|returns.refund')->name('show');
+            Route::post('/{salesReturn}/decision', [SalesReturnController::class, 'decide'])->middleware('permission:returns.approve')->name('decide');
+            Route::post('/{salesReturn}/refund', [SalesReturnController::class, 'pay'])->middleware('permission:returns.refund')->name('pay');
+        });
+
+        Route::middleware('permission:returns.request')->group(function () {
+            Route::post('/sales/{sale}/returns', [SalesReturnController::class, 'store'])->name('api.sales-returns.store');
         });
 
         Route::middleware('permission:products.view')->group(function () {

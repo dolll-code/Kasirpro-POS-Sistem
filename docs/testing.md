@@ -69,7 +69,8 @@ tests/
         ├── DiscountEngineTest.php               # 6 tests: diskon baris nominal/persen, alokasi nota deterministik, batas kasir, maker-checker
         ├── SaleConcurrencyTest.php              # 1 test: dua kasir serentak membeli stok terakhir, penguncian baris pesimistik
         ├── SaleHistoryAndReceiptTest.php        # 3 tests: proteksi IDOR kasir, izin sales.view_all, struk thermal 58/80mm, reprint bebas mutasi
-        └── SaleIdempotencyTest.php              # 4 tests: replay checkout dengan key sama, 409 conflict payload beda, query status via key
+        ├── SaleIdempotencyTest.php              # 4 tests: replay checkout dengan key sama, 409 conflict payload beda, query status via key
+        └── SalesReturnFlowTest.php              # request, approval, historical snapshots, damaged, full refund, cash/date separation
 ```
 
 ---
@@ -80,7 +81,7 @@ tests/
 # Menjalankan seluruh pengujian otomatis (193 tests)
 php artisan test
 
-# Menjalankan pengujian domain POS & Sales saja (Tahap 07)
+# Menjalankan pengujian domain POS, transfer, dan retur
 php artisan test tests/Feature/Sales/
 
 # Menjalankan spesifik test alur checkout tunai
@@ -136,4 +137,3 @@ php artisan test --filter=SaleConcurrencyTest
 | `FR-DIS-03` | Alokasi diskon transaksi proporsional & residual rounding deterministik | `tests/Feature/Sales/DiscountEngineTest.php` |
 | Concurrency | Integritas transaksi paralel PO receiving & supplier payment | `tests/Feature/Purchasing/PurchaseConcurrencyTest.php` |
 | Concurrency | Integritas checkout serentak dua kasir berebut stok terakhir | `tests/Feature/Sales/SaleConcurrencyTest.php` |
-

@@ -415,6 +415,18 @@ Response Sukses (200 OK):
 }
 ```
 
+## 9. Sales Return & Refund
 
+JSON endpoints berprefix `/api/v1/sales`; web UI ada di `/sales-returns`.
 
+| Method | Endpoint | Permission | Aksi |
+|---|---|---|---|
+| `GET` | `/api/v1/sales/returns` | `returns.request`, `returns.approve`, atau `returns.refund` | Riwayat (kasir hanya sale miliknya) |
+| `POST` | `/api/v1/sales/{sale}/returns` | `returns.request` | Ajukan retur |
+| `GET` | `/api/v1/sales/returns/{return}` | salah satu permission retur | Detail/timeline |
+| `POST` | `/api/v1/sales/returns/{return}/decision` | `returns.approve` | Approve/reject |
+| `POST` | `/api/v1/sales/returns/{return}/refund` | `returns.refund` | Bayar refund penuh |
 
+Request retur: `sale_item_id`, `quantity`, `condition` (`resellable`/`damaged`), `reason` wajib, `notes` opsional. Keputusan memakai `decision` (`approved`/`rejected`), `approval_note`, dan `admin_override_reason` bila Admin memutuskan request sendiri. Reject wajib punya catatan.
+
+Refund body: `cash_account_id` wajib; `reference_number` dan `paid_at` opsional. Jumlah selalu `return_total`, satu kali penuh. Error: `RETURN_QUANTITY_EXCEEDED`, `RETURN_INVALID_STATE`, `INSUFFICIENT_CASH_BALANCE`, `REFUND_ALREADY_PAID_OR_INVALID` (HTTP 409), unauthorized (403).

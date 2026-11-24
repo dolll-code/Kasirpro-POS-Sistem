@@ -95,7 +95,7 @@ class SaleController extends Controller
             abort(403, 'Anda tidak memiliki hak akses untuk melihat transaksi penjualan kasir lain.');
         }
 
-        $sale->load(['items.product.unit', 'payment.cashAccount', 'cashier', 'discountApprover']);
+        $sale->load(['items.product.unit', 'payment.cashAccount', 'cashier', 'discountApprover', 'returns.requester', 'returns.approver', 'returns.items', 'returns.payment']);
 
         if ($request->wantsJson()) {
             return response()->json(['data' => $sale]);

@@ -188,6 +188,9 @@
                                     </a>
                                 </li>
                             @endif
+                            @if($user->hasPermission('returns.request') || $user->hasPermission('returns.approve') || $user->hasPermission('returns.refund'))
+                                <li><a href="{{ route('sales-returns.index') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('sales-returns.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2 text-sm font-medium">Retur & Refund</a></li>
+                            @endif
                         @endif
                     </ul>
                 </nav>
@@ -369,6 +372,9 @@
                     </a>
                 @endif
 
+                @if($user && $user->hasPermission('returns.request'))
+                    <a href="{{ route('sales-returns.index') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md {{ request()->routeIs('sales-returns.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">Retur & Refund</a>
+                @endif
                 @if($user && $user->hasPermission('stock_opname.create'))
                     <span class="flex items-center px-3 py-2 text-sm font-medium rounded-lg text-slate-500 opacity-70 cursor-not-allowed">
                         <svg class="mr-3 h-5 w-5 shrink-0 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">

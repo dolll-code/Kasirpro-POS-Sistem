@@ -131,6 +131,12 @@ Dokumen ini mendefinisikan seluruh invariant dan aturan bisnis resmi aplikasi Ka
 | **BR-SALE-12** | Maker-Checker Verifikasi Transfer & Admin Override | Kasir pembuat pesanan transfer dilarang keras memverifikasi transaksinya sendiri (`verifier_id !== cashier_id`). Administrator berwenang melakukan override hanya apabila menyertakan alasan tertulis wajib (`admin_override_reason`) yang disimpan permanen ke dalam catatan audit trail. | `TransferVerificationTest` |
 | **BR-SALE-13** | Penolakan, Kedaluwarsa & Larangan Pemaksaan | Jika verifikasi ditolak (`rejected`), dibatalkan (`cancelled`), atau waktu reservasi kedaluwarsa (`expired`), reservasi stok dilepas kembali ke saldo persediaan tersedia tanpa pernah memotong stok fisik atau mencatat uang masuk. Scheduler `sales:expire-reservations` berjalan setiap menit untuk mengelola kedaluwarsa secara otomatis. Transaksi yang kedaluwarsa dilarang keras dipaksakan menjadi `completed`. | `TransferVerificationTest`, `StockReservationExpiryTest` |
 
+| **BR-RET-01** | Returnable quantity & locking | Return hanya untuk sale `completed`/`partially_returned`; item harus milik sale. Sale/item dikunci; aggregate pending/approved/completed tidak boleh melebihi sold quantity. Reject melepas kuantitas. | `SalesReturnFlowTest` |
+| **BR-RET-02** | Historical return valuation | Harga jual, diskon item/transaksi, dan HPP memakai sale item snapshots. Request belum mengubah revenue, stok, atau cash. | `SalesReturnFlowTest` |
+| **BR-RET-03** | Maker-checker approval | Requester tidak boleh memutuskan sendiri; Admin override memerlukan reason. Identitas, timestamp, note, dan override tercatat di audit. | `SalesReturnFlowTest` |
+| **BR-RET-04** | Revenue/inventory recognition | Approval mengakui return pada `approved_at`. Resellable menambah stok dengan HPP historis dan recalculate moving average; damaged tidak menambah stok dan loss informatif tidak dihitung ganda dalam COGS. Approval tanpa cash outflow. | `SalesReturnFlowTest`, `MovingAverageCostTest` |
+| **BR-RET-05** | Full refund payout | Payout penuh satu kali setelah approval; unique return payment/cash movement, lock, dan saldo non-negatif mencegah payout ganda atau overdraft. Cash flow menggunakan `paid_at`. | `SalesReturnFlowTest`, `CashMovementServiceTest` |
+| **BR-RET-06** | Sale/refund states | Sale `completed`/`partially_returned`/`fully_returned` dihitung dari approved quantity. Refund state (`due`/`paid`) terpisah. P&L pakai `approved_at`; cash flow pakai `paid_at`. | `SalesReturnFlowTest` |
 
 
 

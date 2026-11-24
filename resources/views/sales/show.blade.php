@@ -36,7 +36,20 @@
                     Cetak Struk [Reprint]
                 </a>
             @endif
+            @if(in_array($sale->sale_status, ['completed', 'partially_returned'], true) && auth()->user()->hasPermission('returns.request'))
+                <a href="{{ route('sales-returns.create', $sale) }}" class="inline-flex items-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-500">Ajukan Retur</a>
+            @endif
         </div>
+        @if($sale->returns->isNotEmpty())
+            <section class="mt-6 overflow-hidden rounded-xl border border-slate-700 bg-slate-800">
+                <div class="flex items-center justify-between border-b border-slate-700 px-5 py-4"><h2 class="font-semibold text-white">Riwayat Retur</h2><a href="{{ route('sales-returns.index') }}" class="text-sm text-sky-400">Semua retur</a></div>
+                <div class="divide-y divide-slate-700">
+                    @foreach($sale->returns->sortByDesc('requested_at') as $salesReturn)
+                        <a href="{{ route('sales-returns.show', $salesReturn) }}" class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 hover:bg-slate-700/40"><span><span class="font-mono text-white">{{ $salesReturn->return_number }}</span><span class="ml-2 text-xs text-slate-400">{{ $salesReturn->requested_at?->format('d/m/Y H:i') }}</span></span><span class="text-sm text-slate-300">Rp {{ number_format((float) $salesReturn->return_total, 2, ',', '.') }} · {{ str_replace('_', ' ', $salesReturn->status) }} · refund {{ $salesReturn->refund_status }}</span></a>
+                    @endforeach
+                </div>
+            </section>
+        @endif
     </div>
 
     <!-- Status Timeline (PRD §7.6) -->

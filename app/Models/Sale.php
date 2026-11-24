@@ -61,9 +61,14 @@ class Sale extends Model
         return $this->hasOne(StockReservation::class);
     }
 
+    public function returns(): HasMany
+    {
+        return $this->hasMany(SalesReturn::class);
+    }
+
     public function isCompleted(): bool
     {
-        return $this->sale_status === 'completed';
+        return in_array($this->sale_status, ['completed', 'partially_returned', 'fully_returned'], true);
     }
 
     public function isPendingPayment(): bool
@@ -95,6 +100,8 @@ class Sale extends Model
     {
         return match ($this->sale_status) {
             'completed' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">Selesai</span>',
+            'partially_returned' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">Retur Parsial</span>',
+            'fully_returned' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">Retur Penuh</span>',
             'pending_payment' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">Menunggu Pembayaran</span>',
             'cancelled' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-800">Dibatalkan</span>',
             default => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800">'.e($this->sale_status).'</span>',
@@ -111,6 +118,7 @@ class Sale extends Model
             'unpaid' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">Belum Lunas</span>',
             'partially_refunded' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">Retur Parsial</span>',
             'refunded' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-800">Direfund Penuh</span>',
+            'refund_due' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">Refund Menunggu Dibayar</span>',
             default => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800">'.e($this->payment_status).'</span>',
         };
     }
