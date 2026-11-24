@@ -138,5 +138,10 @@ Dokumen ini mendefinisikan seluruh invariant dan aturan bisnis resmi aplikasi Ka
 | **BR-RET-05** | Full refund payout | Payout penuh satu kali setelah approval; unique return payment/cash movement, lock, dan saldo non-negatif mencegah payout ganda atau overdraft. Cash flow menggunakan `paid_at`. | `SalesReturnFlowTest`, `CashMovementServiceTest` |
 | **BR-RET-06** | Sale/refund states | Sale `completed`/`partially_returned`/`fully_returned` dihitung dari approved quantity. Refund state (`due`/`paid`) terpisah. P&L pakai `approved_at`; cash flow pakai `paid_at`. | `SalesReturnFlowTest` |
 
+| **BR-EXP-01** | Expense draft/posting | Draft dapat diedit. Posting memerlukan kategori aktif dan amount >0; P&L diakui pada `expense_date`, `posted_at` hanya audit. Posted tidak dapat dihapus. | `ExpenseFlowTest` |
+| **BR-EXP-02** | Landed cost isolation | Expense yang ditandai `is_landed_cost` atau memiliki `landed_cost_reference` ditolak saat posting sebagai operating expense; landed cost tetap diproses lewat receipt inventori. | `ExpenseFlowTest` |
+| **BR-EXP-03** | Payment & cash integration | Payment >0 tidak melebihi outstanding, memakai active cash account, dan dicatat di `paid_at`. Idempotency key/payload conflict mencegah payment/cash movement ganda. Payment status unpaid/partial/paid independen dari expense status. | `ExpenseFlowTest` |
+| **BR-EXP-04** | Void/reversal sesuai kondisi aktual | Void wajib reason dan actor. Cash reversal hanya sebesar uang yang benar-benar kembali; selisih jadi unrecovered, tanpa inflow fiktif. Original movement immutable. | `ExpenseFlowTest` |
+| **BR-EXP-05** | P&L vs cash flow date | Recognition memakai `expense_date` dan expense reversal pada `voided_at`; cash flow memakai `paid_at` dikurangi reversal aktual. | `ExpenseFlowTest` |
 
 

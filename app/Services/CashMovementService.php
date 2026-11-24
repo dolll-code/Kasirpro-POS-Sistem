@@ -274,9 +274,9 @@ class CashMovementService
     /**
      * Reverse an existing cash movement by creating a compensating reversal entry.
      */
-    public function reverseMovement(CashMovement|int $movement, string $reason, ?int $userId = null): CashMovement
+    public function reverseMovement(CashMovement|int $movement, string $reason, ?int $userId = null, string|Decimal|null $amount = null): CashMovement
     {
-        return DB::transaction(function () use ($movement, $reason, $userId) {
+        return DB::transaction(function () use ($movement, $reason, $userId, $amount) {
             $mov = $movement instanceof CashMovement ? $movement : CashMovement::findOrFail($movement);
 
             if ($mov->movement_type === 'REVERSAL') {
@@ -289,7 +289,10 @@ class CashMovementService
             }
 
             $acc = $this->lockAccount($mov->cash_account_id, requireActive: true);
-            $amt = Decimal::of($mov->amount, 2);
+            $amt = Decimal::of($amount ?? $mov->amount, 2);
+            if (! $amt->isPositive() || $amt->isGreaterThan($mov->amount)) {
+                throw new InvalidArgumentException('Nominal reversal harus > 0 dan tidak boleh melebihi movement asal.');
+            }
             $before = Decimal::of($acc->current_balance ?? '0', 2);
 
             // If original was IN, reversal is OUT (deducts cash)

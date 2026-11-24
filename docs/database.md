@@ -690,3 +690,14 @@ Unique satu payout penuh per return melalui unique `sales_return_id` dan `cash_m
 
 Approval resellable membuat `IN_RETURN_RESELLABLE` dengan cost historis dan moving average recalculation. Damaged return tidak menambah stok; cost dicatat sebagai indikator loss dan tidak mengurangi net COGS lagi.
 
+## 10. Operating expenses
+
+### 10.1 `expenses`
+
+Expense number berformat `EXP-YYYYMMDD-xxxxx`. Status dokumen `draft`, `posted`, `voided`; `payment_status` dihitung terpisah (`unpaid`, `partially_paid`, `paid`). `expense_date` menjadi recognition date P&L; `posted_at` hanya audit timestamp. `is_landed_cost`/`landed_cost_reference` mencegah biaya receipt inventory dicatat ulang sebagai operating expense.
+
+Void menyimpan `void_reason`, actor/time, `void_cash_refund_amount` aktual, dan `void_cash_unrecovered_amount`. Expense reversal recognition memakai `voided_at`; uang yang belum kembali tidak menjadi cash inflow.
+
+### 10.2 `expense_payments` dan `expense_void_reversals`
+
+Payment menyimpan expense, akun kas, `cash_movement_id`, nominal, `paid_at`, pembuat, unique `idempotency_key`, dan `payload_hash`. Cash movement `EXPENSE_PAYMENT` dibuat saat pembayaran aktual. Void reversal menautkan payment/movement asal ke cash movement reversal, jumlah aktual, reason, dan actor. Movement asal tetap append-only.

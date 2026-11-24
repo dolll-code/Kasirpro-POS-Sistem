@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\ProfileController;
 use App\Http\Controllers\CashAccountController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ExpenseCategoryController;
+use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\MasterDashboardController;
 use App\Http\Controllers\PosController;
@@ -87,6 +88,18 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::middleware('permission:expenses.create')->group(function () {
         Route::resource('expense-categories', ExpenseCategoryController::class)->except(['show']);
         Route::patch('/expense-categories/{expense_category}/toggle-status', [ExpenseCategoryController::class, 'toggleStatus'])->name('expense-categories.toggle_status');
+    });
+
+    Route::prefix('expenses')->name('expenses.')->group(function () {
+        Route::get('/', [ExpenseController::class, 'index'])->middleware('permission:expenses.create|expenses.post|expenses.pay')->name('index');
+        Route::get('/create', [ExpenseController::class, 'create'])->middleware('permission:expenses.create')->name('create');
+        Route::post('/', [ExpenseController::class, 'store'])->middleware('permission:expenses.create')->name('store');
+        Route::get('/{expense}', [ExpenseController::class, 'show'])->middleware('permission:expenses.create|expenses.post|expenses.pay')->name('show');
+        Route::get('/{expense}/edit', [ExpenseController::class, 'edit'])->middleware('permission:expenses.create')->name('edit');
+        Route::put('/{expense}', [ExpenseController::class, 'update'])->middleware('permission:expenses.create')->name('update');
+        Route::post('/{expense}/post', [ExpenseController::class, 'post'])->middleware('permission:expenses.post')->name('post');
+        Route::post('/{expense}/payments', [ExpenseController::class, 'pay'])->middleware('permission:expenses.pay')->name('payments.store');
+        Route::post('/{expense}/void', [ExpenseController::class, 'void'])->middleware('permission:expenses.post')->name('void');
     });
 
     // Master: Cash Accounts & Store Settings (FR-MST-06, FR-STORE-01, FR-CASH-01..02)
@@ -202,6 +215,16 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::middleware('permission:sales.create')->group(function () {
             Route::post('/sales/calculate', [PosController::class, 'calculate'])->name('api.sales.calculate');
             Route::post('/sales/checkout', [PosController::class, 'checkout'])->name('api.sales.checkout');
+        });
+
+        Route::prefix('expenses')->name('api.expenses.')->group(function () {
+            Route::get('/', [ExpenseController::class, 'index'])->middleware('permission:expenses.create|expenses.post|expenses.pay')->name('index');
+            Route::post('/', [ExpenseController::class, 'store'])->middleware('permission:expenses.create')->name('store');
+            Route::get('/{expense}', [ExpenseController::class, 'show'])->middleware('permission:expenses.create|expenses.post|expenses.pay')->name('show');
+            Route::put('/{expense}', [ExpenseController::class, 'update'])->middleware('permission:expenses.create')->name('update');
+            Route::post('/{expense}/post', [ExpenseController::class, 'post'])->middleware('permission:expenses.post')->name('post');
+            Route::post('/{expense}/payments', [ExpenseController::class, 'pay'])->middleware('permission:expenses.pay')->name('payments.store');
+            Route::post('/{expense}/void', [ExpenseController::class, 'void'])->middleware('permission:expenses.post')->name('void');
         });
 
         Route::middleware('permission:sales.view_all|sales.view_own')->group(function () {

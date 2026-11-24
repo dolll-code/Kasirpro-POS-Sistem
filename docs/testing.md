@@ -70,7 +70,8 @@ tests/
         ├── SaleConcurrencyTest.php              # 1 test: dua kasir serentak membeli stok terakhir, penguncian baris pesimistik
         ├── SaleHistoryAndReceiptTest.php        # 3 tests: proteksi IDOR kasir, izin sales.view_all, struk thermal 58/80mm, reprint bebas mutasi
         ├── SaleIdempotencyTest.php              # 4 tests: replay checkout dengan key sama, 409 conflict payload beda, query status via key
-        └── SalesReturnFlowTest.php              # request, approval, historical snapshots, damaged, full refund, cash/date separation
+        ├── SalesReturnFlowTest.php              # request, approval, historical snapshots, damaged, full refund, cash/date separation
+        └── Expenses/ExpenseFlowTest.php        # draft/post, landed cost, partial/full payment, idempotency, void/reversal, recognition dates
 ```
 
 ---

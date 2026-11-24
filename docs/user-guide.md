@@ -427,3 +427,20 @@ Hanya Admin/Supervisor dengan izin `payments.verify_transfer` dapat membuka menu
 2. Pilih akun kas/bank, masukkan referensi bila ada, dan waktu pembayaran aktual. Refund dibayar penuh sekaligus; saldo akun harus cukup.
 3. Satu retur hanya dapat dibayar satu kali. `approved_at` menjadi tanggal pengakuan P&L; `paid_at` menjadi tanggal cash flow.
 4. Riwayat sale dan halaman **Retur & Refund** menampilkan kondisi, snapshot nilai, keputusan, payment, dan timeline.
+
+## 14. Biaya operasional dan pembayaran expense
+
+### Buat dan posting expense
+1. Buka **Biaya Operasional** lalu pilih **Buat Expense**. Pilih kategori aktif, isi `expense_date`, deskripsi, jumlah positif, dan catatan opsional.
+2. Simpan sebagai draft. Draft dapat diedit; periksa detail lalu klik **Posting Expense** untuk mengakui biaya pada `expense_date`. `posted_at` hanya waktu audit.
+3. Biaya yang dikapitalisasi sebagai landed cost receipt tidak boleh dicatat lagi sebagai operating expense. Tandai/isi referensi landed cost; dokumen tersebut tidak dapat diposting sebagai expense operasional.
+
+### Bayar expense
+1. Pada detail expense posted, pilih akun kas/bank, jumlah pembayaran, referensi, dan `paid_at` aktual.
+2. Pembayaran boleh parsial atau penuh, tetapi tidak boleh melebihi outstanding. Saldo akun wajib cukup.
+3. Cash movement out dibuat pada waktu pembayaran. Payment status `unpaid`, `partially_paid`, atau `paid` tidak mengubah status dokumen expense.
+
+### Void dan reversal
+1. Expense posted dapat di-void dengan alasan wajib.
+2. Isi hanya jumlah uang yang benar-benar sudah dikembalikan. Sistem membuat cash reversal append-only untuk jumlah itu; sisa yang belum kembali disimpan sebagai unrecovered tanpa cash inflow fiktif.
+3. Expense recognition dibalik pada `voided_at`; pembayaran/reversal memengaruhi cash flow pada waktu masing-masing. Detail menampilkan payment history, cash movements, actor, reason, dan timeline.

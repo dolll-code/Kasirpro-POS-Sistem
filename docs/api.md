@@ -430,3 +430,18 @@ JSON endpoints berprefix `/api/v1/sales`; web UI ada di `/sales-returns`.
 Request retur: `sale_item_id`, `quantity`, `condition` (`resellable`/`damaged`), `reason` wajib, `notes` opsional. Keputusan memakai `decision` (`approved`/`rejected`), `approval_note`, dan `admin_override_reason` bila Admin memutuskan request sendiri. Reject wajib punya catatan.
 
 Refund body: `cash_account_id` wajib; `reference_number` dan `paid_at` opsional. Jumlah selalu `return_total`, satu kali penuh. Error: `RETURN_QUANTITY_EXCEEDED`, `RETURN_INVALID_STATE`, `INSUFFICIENT_CASH_BALANCE`, `REFUND_ALREADY_PAID_OR_INVALID` (HTTP 409), unauthorized (403).
+
+## 10. Operating expenses
+
+Web routes memakai `/expenses`; JSON API memakai `/api/v1/expenses`.
+
+| Method | Endpoint | Permission | Aksi |
+|---|---|---|---|
+| `GET` | `/api/v1/expenses` | `expenses.create`/`expenses.post`/`expenses.pay` | List/filter |
+| `POST` | `/api/v1/expenses` | `expenses.create` | Buat draft |
+| `GET` / `PUT` | `/api/v1/expenses/{expense}` | read permission / `expenses.create` | Detail / edit draft |
+| `POST` | `/api/v1/expenses/{expense}/post` | `expenses.post` | Posting recognition |
+| `POST` | `/api/v1/expenses/{expense}/payments` | `expenses.pay` | Pembayaran partial/full; wajib `Idempotency-Key` atau `idempotency_key` |
+| `POST` | `/api/v1/expenses/{expense}/void` | `expenses.post` | Void dengan reason dan cash refund aktual |
+
+Expense body: `expense_category_id`, `expense_date`, `description`, `amount` (>0), `notes`, optional `is_landed_cost`, `landed_cost_reference`. Payment body: `cash_account_id`, `amount`, `reference_number`, `paid_at`, idempotency key. Void body: `reason`, `cash_refund_amount` dari nol sampai jumlah payment aktual. Errors: `EXPENSE_CANNOT_POST`, `EXPENSE_PAYMENT_INVALID`, `INSUFFICIENT_CASH_BALANCE`, `EXPENSE_VOID_INVALID` (409); missing key 422.
