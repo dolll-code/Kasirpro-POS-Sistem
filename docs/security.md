@@ -67,3 +67,21 @@ Setiap mutasi log audit menyertakan:
 - `correlation_id` yang diambil dari header HTTP `X-Request-Id` (UUIDv4).
 - `ip_address` dan `user_agent` pemanggil.
 - ID pengguna pelaku aksi (*Actor User ID*).
+
+## 5. Ekspor Laporan (PDF/XLSX)
+
+### 5.1 Perlindungan file
+- File ekspor **wajib** berada pada disk privat. Jangan memasang symlink/URL statis menuju `storage/app/private/exports`.
+- Route download memeriksa kepemilikan record (`report_exports.user_id`), permission `reports.export`, status `completed`, expiry, dan keberadaan file.
+- Nama file menggunakan UUID ekspor, bukan input pengguna, untuk mencegah path traversal.
+- Jangan mencatat isi file atau secret pada log/audit.
+
+### 5.2 Formula injection
+- Cell teks yang diawali `=`, `+`, `-`, `@`, tab, atau carriage return diberi prefix apostrof sebelum ditulis ke XLSX.
+- Angka ditulis sebagai tipe numeric, tanggal sebagai date, sehingga data tidak berubah menjadi formula.
+
+### 5.3 Dependency
+- `dompdf/dompdf ^3.1.6` dipilih setelah advisory versi 3.1.0 terblokir; versi 3.1.6 tidak memiliki advisory saat instalasi.
+- `phpoffice/phpspreadsheet ^5.12.0` dipilih karena versi 4.1/5.8 terkena advisory aktual.
+- Keduanya lisensi permisif (LGPL-2.1 untuk Dompdf, MIT untuk PhpSpreadsheet) dan kompatibel PHP 8.2 + Laravel 12.
+- `composer audit` saat implementasi masih mencatat advisory pada dependency Symfony bawaan framework (http-kernel, mailer, routing), bukan pada package ekspor; patch framework harus mengikuti production gate `docs/deployment.md`.

@@ -30,6 +30,16 @@
             <h1 class="mt-2 text-2xl font-bold text-white">{{ $title }}</h1>
             @if($period)<p class="text-sm text-slate-400">Periode {{ \Carbon\Carbon::parse($period['from_date'])->format('d/m/Y') }} &mdash; {{ \Carbon\Carbon::parse($period['to_date'])->format('d/m/Y') }} (Asia/Jakarta, inklusif)</p>@endif
         </div>
+        @if(auth()->user()->hasPermission('reports.export'))
+            <form method="POST" action="{{ route('reports.export', $type) }}" class="flex flex-wrap items-end gap-2 rounded-xl border border-slate-700 bg-slate-800 p-3 text-sm">
+                @csrf
+                <input type="hidden" name="from" value="{{ request('from') }}">
+                <input type="hidden" name="to" value="{{ request('to') }}">
+                <select name="format" class="rounded border-slate-600 bg-slate-900 text-white"><option value="pdf">PDF</option><option value="xlsx">XLSX</option></select>
+                <button class="rounded-lg bg-emerald-600 px-3 py-2 font-semibold text-white">Ekspor</button>
+                <a href="{{ route('reports.export_history') }}" class="px-2 py-2 text-sky-400">Riwayat ekspor</a>
+            </form>
+        @endif
         <form class="flex flex-wrap items-end gap-2 rounded-xl border border-slate-700 bg-slate-800 p-3 text-sm">
             @if($type === 'profit-loss')
                 <label class="text-slate-300">Dari<input type="date" name="from" value="{{ request('from') }}" class="ml-1 rounded border-slate-600 bg-slate-900 text-white"></label>

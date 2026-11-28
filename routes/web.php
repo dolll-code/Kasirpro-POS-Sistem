@@ -38,6 +38,10 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     // Reports
     Route::prefix('reports')->name('reports.')->middleware('permission:reports.view_all|reports.view_limited')->group(function () {
+        Route::get('/exports/history', [ReportController::class, 'exportHistory'])->name('export_history');
+        Route::get('/exports/{export}/status', [ReportController::class, 'exportStatus'])->name('export_status');
+        Route::get('/exports/{export}/download', [ReportController::class, 'download'])->name('export_download')->middleware('permission:reports.export');
+        Route::post('/{type}/export', [ReportController::class, 'export'])->name('export')->middleware('permission:reports.export');
         Route::get('/{type}', [ReportController::class, 'show'])->name('show');
     });
 
@@ -283,6 +287,10 @@ Route::middleware(['auth', 'active'])->group(function () {
         });
 
         Route::middleware('permission:reports.view_all|reports.view_limited')->group(function () {
+            Route::get('/reports/exports', [ReportController::class, 'exportHistory'])->name('api.reports.exports');
+            Route::get('/reports/exports/{export}', [ReportController::class, 'exportStatus'])->name('api.reports.export_status');
+            Route::get('/reports/exports/{export}/download', [ReportController::class, 'download'])->name('api.reports.download')->middleware('permission:reports.export');
+            Route::post('/reports/{type}/export', [ReportController::class, 'export'])->name('api.reports.export')->middleware('permission:reports.export');
             Route::get('/reports/{type}', [ReportController::class, 'report'])->name('api.reports.show');
         });
     });

@@ -149,3 +149,9 @@ php artisan test --filter=SaleConcurrencyTest
 | `FR-REP-04` | Performa produk memakai snapshot | `tests/Feature/Reports/ReportFlowTest.php` |
 | `FR-REP-06` | Perbandingan periode denominator nol | `tests/Feature/Reports/ReportFlowTest.php` |
 | Authorization | Kasir tidak dapat mengakses report; scope sales report | `tests/Feature/Reports/ReportFlowTest.php` |
+
+| `FR-EXPORT-01` | PDF/XLSX report, summary, detail, total, tanggal/waktu/pembuat | `tests/Feature/Reports/ReportExportFlowTest.php` |
+| `FR-EXPORT-02` | Private storage, ownership/permission, expiry, secure download | `tests/Feature/Reports/ReportExportFlowTest.php` |
+| `FR-EXPORT-03` | Riwayat status requested/processing/completed/failed/expired | `tests/Feature/Reports/ReportExportFlowTest.php` |
+| Queue | Job idempotent, retry-safe, failed handler, export ID payload | `tests/Feature/Reports/ReportExportFlowTest.php` |
+| XLSX | Numeric/date types dan formula injection sanitization | `tests/Feature/Reports/ReportExportFlowTest.php` |

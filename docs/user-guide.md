@@ -471,3 +471,11 @@ Hanya Admin/Supervisor dengan izin `payments.verify_transfer` dapat membuka menu
 3. Atur periode `Dari` dan `Sampai`. Tanggal inklusif memakai Asia/Jakarta. Untuk Laba Rugi, isi periode pembanding karena perubahan persen akan bernilai `—` bila basis nol.
 4. Tabel dapat dipaginasi. Report penjualan menyimpan snapshot item; P&L memakai HPP historis, bukan harga master terkini.
 5. Halaman Laba Rugi memberi label "Laba Rugi Sederhana / Ringkasan Hasil Operasional" dan bukan laporan akuntansi formal. Retur rusak dapat tampil sebagai informasi, bukan pengurang COGS kedua.
+
+## 17. Ekspor laporan PDF/XLSX
+
+1. Buka laporan (mis. **Laporan Penjualan**) lalu pilih format **PDF** atau **XLSX** dan klik **Ekspor**.
+2. Jika ekspor kecil, file langsung selesai. Jika antrean berjalan, halaman status menampilkan `requested`/`processing` dan dapat diperiksa ulang.
+3. Setelah `completed`, klik **Unduh**. File disimpan privat dan memiliki masa berlaku (default 24 jam). Setelah kedaluwarsa, unduhan menghasilkan status expired dan file dibersihkan scheduler.
+4. Buka **Riwayat ekspor** untuk melihat status, waktu, dan error. Jika gagal, gunakan **Coba Lagi** untuk membuat permintaan baru.
+5. File hanya dapat diunduh oleh pemilik atau Admin yang masih memiliki izin `reports.export`.

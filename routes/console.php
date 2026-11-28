@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\ReportExportService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -9,3 +10,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('sales:expire-reservations')->everyMinute();
+
+Schedule::call(function () {
+    app(ReportExportService::class)->expireOverdue();
+})->hourly()->name('expire-report-exports')->withoutOverlapping();

@@ -470,3 +470,11 @@ Web: `GET /reports/{type}`, `GET /` (dashboard). API: `GET /api/v1/reports/{type
 Tipe report: `sales`, `purchases`, `returns`, `expenses`, `inventory`, `profit-loss`, `cash-flow`, `stock-opnames`, `product-performance`. Filter `from`, `to` (`YYYY-MM-DD`, Asia/Jakarta, inklusif), `per_page` (1-100), dan untuk P&L `compare_from`/`compare_to`. Sales report mendukung `sort` whitelist (`transaction_number`, `completed_at`, `grand_total`, `sale_status`) serta `dir=asc|desc`. Permission: `reports.view_all` atau `reports.view_limited`; sales report membatasi kasir ke transaksi miliknya.
 
 P&L response diberi label "Laba Rugi Sederhana / Ringkasan Hasil Operasional" dan tidak diklaim sebagai laporan akuntansi formal.
+
+## 11. PDF/XLSX Export
+
+Web: `POST /reports/{type}/export`, `GET /reports/exports/history`, `GET /reports/exports/{id}/status`, `GET /reports/exports/{id}/download`. API: `/api/v1/reports/{type}/export`, `/api/v1/reports/exports`, `/api/v1/reports/exports/{id}`, `/api/v1/reports/exports/{id}/download`.
+
+Body export: `format` (`pdf`/`xlsx`), `from`, `to`, `sort`, `dir`. Permission create/download: `reports.export` + akses laporan. File disimpan di disk privat `storage/app/private/exports`, TTL default 24 jam, maksimal 5.000 baris per ekspor.
+
+Status: `requested`, `processing`, `completed`, `failed`, `expired`. Error: 403 owner/permission, 404 file hilang, 409 belum selesai/gagal, 410 kedaluwarsa. API mengembalikan record `report_exports`; download menggunakan `Content-Disposition` privat, bukan URL publik permanen.

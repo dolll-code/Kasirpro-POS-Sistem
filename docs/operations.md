@@ -81,3 +81,26 @@ Sistem menyediakan fungsi audit mandiri untuk memvalidasi bahwa proyeksi saldo i
 | `IDEMPOTENCY_CONFLICT` | 409 | Pengiriman ulang request dengan Idempotency-Key yang sama namun parameter pesanan berbeda. | Gunakan UUID baru untuk transaksi pesanan berbeda. |
 | `INSUFFICIENT_STOCK` | 409 | Stok tersedia (`on_hand - reserved`) tidak mencukupi kuantitas yang diminta. | Periksa stok fisik atau tunggu rilis reservasi transaksi lain. |
 | `FORBIDDEN` | 403 | Kasir mencoba memverifikasi transfer miliknya sendiri (pelanggaran Maker-Checker). | Minta supervisor lain memverifikasi, atau gunakan Admin Override dengan alasan wajib. |
+
+## 6. Ekspor Laporan PDF/XLSX
+
+### 6.1 Ringkasan implementasi
+- Laporan dapat diekspor dari halaman report melalui tombol **Ekspor** (PDF atau XLSX).
+- File disimpan pada disk privat `private` di `storage/app/private/exports`, bukan `public/`.
+- Metadata ekspor tersimpan di `report_exports`: requester, report type, filter, format, status, file, ukuran, error, attempts, expiry.
+- Scheduler `expire-report-exports` berjalan hourly untuk menghapus file dan menandai record `expired`.
+
+### 6.2 Queue dan retry
+- Queue menggunakan database driver (default `QUEUE_CONNECTION=database`).
+- `GenerateReportExport` menerima `exportId`, tidak menyimpan secret. Job `tries=3`, `timeout=120`.
+- File yang sudah `completed` atau `expired` tidak diproses ulang oleh job.
+- Failed job ditandai `failed`, `error_code=EXPORT_JOB_FAILED`, dan dapat di-retry dari halaman status (request baru).
+
+### 6.3 Secure download
+- Hanya pemilik export atau Admin yang dapat membuka status/download; permission `reports.export` diperiksa ulang saat download.
+- File tidak menggunakan permanent public URL. Link download adalah route privat yang memeriksa status, expiry, dan existence.
+
+### 6.4 Retensi dan pembersihan
+- Default expiry 24 jam (`REPORT_EXPORT_EXPIRY_HOURS`).
+- Row limit per export 5.000 baris (`REPORT_EXPORT_ROW_LIMIT`) untuk membatasi beban query/file.
+- File expired dihapus tanpa menghapus data transaksi/ledger.

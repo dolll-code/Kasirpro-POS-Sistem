@@ -17,7 +17,6 @@ use App\Models\StockOpnameItem;
 use App\Models\User;
 use App\Support\Decimal;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
 
 class ReportService
 {
@@ -270,11 +269,123 @@ class ReportService
         return ['period' => $period, 'data' => $data];
     }
 
-    public function collectionForExport(string $type, array $filters): Collection
+    public function availableReportRows(User $user, string $type, array $filters = []): array
     {
+        $limit = max(1, (int) config('reports.row_limit', 5000));
+        $from = $filters['from'] ?? null;
+        $to = $filters['to'] ?? null;
+        $period = $this->period($from, $to);
+
         return match ($type) {
-            'sales' => Sale::whereBetween('completed_at', [$filters['from'], $filters['to']])->with('cashier')->get(),
-            default => collect(),
+            'sales' => $this->salesRows($user, $period, $limit),
+            'purchases' => $this->purchaseRows($period, $limit),
+            'returns' => $this->returnRows($period, $limit),
+            'expenses' => $this->expenseRows($period, $limit),
+            'inventory' => $this->inventoryRows($period, $limit),
+            'profit-loss' => $this->profitLossExport($period),
+            'cash-flow' => $this->cashFlowRows($period, $limit),
+            'stock-opnames' => $this->stockOpnameRows($period, $limit),
+            'product-performance' => $this->productPerformanceRows($period, $limit),
+            default => throw new \InvalidArgumentException('Jenis laporan tidak mendukung ekspor.'),
         };
+    }
+
+    private function salesRows(User $user, array $period, int $limit): array
+    {
+        $report = $this->salesReport($user, $period['from_date'], $period['to_date'], $limit);
+        $report['columns'] = [
+            ['key' => 'transaction_number', 'label' => 'No Transaksi'], ['key' => 'cashier', 'label' => 'Kasir'],
+            ['key' => 'sale_status', 'label' => 'Status'], ['key' => 'grand_total', 'label' => 'Total'],
+            ['key' => 'completed_at', 'label' => 'Tanggal'],
+        ];
+        $report['summary_labels'] = ['transactions' => 'Transaksi', 'gross' => 'Gross Sales', 'item_discount' => 'Diskon Item', 'transaction_discount' => 'Diskon Transaksi', 'net' => 'Net Sales'];
+        $report['rows'] = $report['data']->getCollection()->map(fn ($sale) => [
+            'transaction_number' => $sale->transaction_number, 'cashier' => $sale->cashier?->name, 'sale_status' => $sale->sale_status,
+            'grand_total' => $sale->grand_total, 'completed_at' => $sale->completed_at?->toDateTimeString(),
+        ]);
+
+        return $report;
+    }
+
+    private function purchaseRows(array $period, int $limit): array
+    {
+        $report = $this->purchaseReport($period['from_date'], $period['to_date'], $limit);
+        $report['columns'] = [['key' => 'purchase_number', 'label' => 'No PO'], ['key' => 'supplier', 'label' => 'Supplier'], ['key' => 'status', 'label' => 'Status'], ['key' => 'payable_total', 'label' => 'Payable'], ['key' => 'order_date', 'label' => 'Tanggal']];
+        $report['summary_labels'] = ['count' => 'Jumlah PO', 'payable' => 'Nilai PO', 'paid' => 'Dibayar', 'outstanding' => 'Outstanding'];
+        $report['rows'] = $report['data']->getCollection()->map(fn ($p) => ['purchase_number' => $p->purchase_number, 'supplier' => $p->supplier?->name, 'status' => $p->status, 'payable_total' => $p->payable_total, 'order_date' => $p->order_date?->toDateString()]);
+
+        return $report;
+    }
+
+    private function returnRows(array $period, int $limit): array
+    {
+        $report = $this->returnReport($period['from_date'], $period['to_date'], $limit);
+        $report['columns'] = [['key' => 'return_number', 'label' => 'No Retur'], ['key' => 'sale', 'label' => 'Penjualan'], ['key' => 'status', 'label' => 'Status'], ['key' => 'return_total', 'label' => 'Nilai'], ['key' => 'approved_at', 'label' => 'Approved']];
+        $report['summary_labels'] = ['count' => 'Jumlah Retur', 'total' => 'Total Retur', 'cogs_reversal' => 'COGS Reversal', 'damaged_loss_informational' => 'Damaged Loss (informasi)'];
+        $report['rows'] = $report['data']->getCollection()->map(fn ($r) => ['return_number' => $r->return_number, 'sale' => $r->sale?->transaction_number, 'status' => $r->status, 'return_total' => $r->return_total, 'approved_at' => $r->approved_at?->toDateTimeString()]);
+
+        return $report;
+    }
+
+    private function expenseRows(array $period, int $limit): array
+    {
+        $report = $this->expenseReport($period['from_date'], $period['to_date'], $limit);
+        $report['columns'] = [['key' => 'expense_number', 'label' => 'No Expense'], ['key' => 'category', 'label' => 'Kategori'], ['key' => 'status', 'label' => 'Status'], ['key' => 'amount', 'label' => 'Jumlah'], ['key' => 'expense_date', 'label' => 'Tanggal Expense']];
+        $report['summary_labels'] = ['gross' => 'Gross', 'void_reversal' => 'Void', 'net' => 'Neto'];
+        $report['rows'] = $report['data']->getCollection()->map(fn ($e) => ['expense_number' => $e->expense_number, 'category' => $e->category?->name, 'status' => $e->status, 'amount' => $e->amount, 'expense_date' => $e->expense_date?->toDateString()]);
+
+        return $report;
+    }
+
+    private function inventoryRows(array $period, int $limit): array
+    {
+        $report = $this->inventoryReport($period['from_date'], $period['to_date'], $limit);
+        $report['columns'] = [['key' => 'name', 'label' => 'Produk'], ['key' => 'sku', 'label' => 'SKU'], ['key' => 'category', 'label' => 'Kategori'], ['key' => 'quantity_on_hand', 'label' => 'On Hand'], ['key' => 'average_cost', 'label' => 'HPP'], ['key' => 'stock_value', 'label' => 'Nilai Stok']];
+        $report['summary_labels'] = ['current_stock_value' => 'Nilai Stok Saat Ini', 'movement_count' => 'Jumlah Movement'];
+        $report['rows'] = $report['data']->getCollection()->map(fn ($p) => ['name' => $p->name, 'sku' => $p->sku, 'category' => $p->category?->name, 'quantity_on_hand' => $p->quantity_on_hand, 'average_cost' => $p->average_cost, 'stock_value' => (float) $p->quantity_on_hand * (float) $p->average_cost]);
+
+        return $report;
+    }
+
+    private function profitLossExport(array $period): array
+    {
+        $report = $this->profitLoss($period['from_date'], $period['to_date']);
+        $labels = ['gross_sales' => 'Gross Sales', 'sales_discounts' => 'Sales Discounts', 'sales_returns' => 'Sales Returns', 'net_sales' => 'Net Sales', 'gross_cogs' => 'Gross COGS', 'cogs_reversal' => 'COGS Reversal', 'net_cogs' => 'Net COGS', 'gross_profit' => 'Gross Profit', 'operating_expenses' => 'Operating Expenses', 'shrinkage_loss' => 'Shrinkage Loss', 'operating_result' => 'Simplified Operating Result', 'operating_margin' => 'Operating Margin'];
+
+        return [
+            'period' => $period, 'summary' => $report['current']['summary'], 'summary_labels' => $labels,
+            'columns' => [['key' => 'label', 'label' => 'Komponen'], ['key' => 'value', 'label' => 'Nilai']],
+            'rows' => collect($labels)->map(fn ($label, $key) => ['label' => $label, 'value' => $report['current']['summary'][$key] ?? '0.00']),
+        ];
+    }
+
+    private function cashFlowRows(array $period, int $limit): array
+    {
+        $report = $this->cashFlow($period['from_date'], $period['to_date'], $limit);
+        $report['columns'] = [['key' => 'occurred_at', 'label' => 'Waktu'], ['key' => 'account', 'label' => 'Akun'], ['key' => 'movement_type', 'label' => 'Tipe'], ['key' => 'direction', 'label' => 'Arah'], ['key' => 'amount', 'label' => 'Jumlah']];
+        $report['summary_labels'] = ['opening' => 'Saldo Awal', 'inflow' => 'Kas Masuk', 'outflow' => 'Kas Keluar', 'closing' => 'Saldo Akhir'];
+        $report['rows'] = $report['data']->getCollection()->map(fn ($m) => ['occurred_at' => $m->occurred_at?->toDateTimeString(), 'account' => $m->cashAccount?->name, 'movement_type' => $m->movement_type, 'direction' => $m->direction, 'amount' => $m->amount]);
+
+        return $report;
+    }
+
+    private function stockOpnameRows(array $period, int $limit): array
+    {
+        $report = $this->stockOpnameReport($period['from_date'], $period['to_date'], $limit);
+        $report['columns'] = [['key' => 'opname_number', 'label' => 'No'], ['key' => 'items_count', 'label' => 'Jumlah Item'], ['key' => 'status', 'label' => 'Status'], ['key' => 'created_at', 'label' => 'Dibuat']];
+        $report['summary_labels'] = ['count' => 'Jumlah Sesi', 'posted' => 'Posted'];
+        $report['rows'] = $report['data']->getCollection()->map(fn ($o) => ['opname_number' => $o->opname_number, 'items_count' => $o->items_count, 'status' => $o->status, 'created_at' => $o->created_at?->toDateTimeString()]);
+
+        return $report;
+    }
+
+    private function productPerformanceRows(array $period, int $limit): array
+    {
+        $report = $this->productPerformance($period['from_date'], $period['to_date'], $limit);
+        $report['columns'] = [['key' => 'product_name_snapshot', 'label' => 'Produk'], ['key' => 'quantity', 'label' => 'Qty'], ['key' => 'net_sales', 'label' => 'Net Sales'], ['key' => 'discounts', 'label' => 'Diskon'], ['key' => 'cogs', 'label' => 'COGS']];
+        $report['summary_labels'] = [];
+        $report['rows'] = $report['data']->getCollection()->map(fn ($p) => ['product_name_snapshot' => $p->product_name_snapshot, 'quantity' => $p->quantity, 'net_sales' => $p->net_sales, 'discounts' => $p->discounts, 'cogs' => $p->cogs]);
+
+        return $report;
     }
 }
