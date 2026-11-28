@@ -463,3 +463,11 @@ Hanya Admin/Supervisor dengan izin `payments.verify_transfer` dapat membuka menu
 2. Negative variance memakai HPP snapshot; positive variance memakai HPP aktif. Jika HPP aktif masih nol, masukkan unit cost dan reason sebelum menyetujui.
 3. Setelah **approved**, klik **Posting Sekarang**. Movement hanya dibuat untuk variance tidak nol, saldo diperbarui, audit dicatat, dan seluruh lock dilepas. Posting hanya dapat dilakukan sekali.
 4. **Batalkan Sesi** melepas lock tanpa membuat movement stok. Semua langkah membutuhkan alasan dan tercatat di timeline/audit.
+
+## 16. Dashboard dan laporan
+
+1. Buka **Dashboard** untuk melihat ringkasan transaksi hari ini, penjualan netto, stok menipis, stok habis, transaksi terbaru, dan aktivitas kas. Kasir hanya melihat transaksi miliknya; ringkasan kas hanya untuk peran dengan izin laporan.
+2. Pilih salah satu laporan: Penjualan, Pembelian, Retur, Biaya, Persediaan, Laba Rugi Sederhana, Arus Kas, Opname, atau Performa Produk.
+3. Atur periode `Dari` dan `Sampai`. Tanggal inklusif memakai Asia/Jakarta. Untuk Laba Rugi, isi periode pembanding karena perubahan persen akan bernilai `—` bila basis nol.
+4. Tabel dapat dipaginasi. Report penjualan menyimpan snapshot item; P&L memakai HPP historis, bukan harga master terkini.
+5. Halaman Laba Rugi memberi label "Laba Rugi Sederhana / Ringkasan Hasil Operasional" dan bukan laporan akuntansi formal. Retur rusak dapat tampil sebagai informasi, bukan pengurang COGS kedua.

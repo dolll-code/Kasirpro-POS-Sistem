@@ -142,3 +142,10 @@ php artisan test --filter=SaleConcurrencyTest
 | `FR-STO-01` | Start opname, lock produk, snapshot expected & average cost | `tests/Feature/Inventory/StockOpnameFlowTest.php` |
 | `FR-STO-02` | Variance negative/positive, approval maker-checker, posting sekali & release lock | `tests/Feature/Inventory/StockOpnameFlowTest.php` |
 | Concurrency | Sesi opname kedua pada produk sama ditolak unique active lock | `tests/Feature/Inventory/StockOpnameFlowTest.php` |
+
+| `FR-REP-01` | Laporan penjualan, pembelian, retur, biaya, persediaan, opname | `tests/Feature/Reports/ReportFlowTest.php` |
+| `FR-REP-02` | Laba rugi sederhana dan recon P&L | `tests/Feature/Reports/ReportFlowTest.php` |
+| `FR-REP-03` | Arus kas dari cash_movements occurred_at | `tests/Feature/Reports/ReportFlowTest.php` |
+| `FR-REP-04` | Performa produk memakai snapshot | `tests/Feature/Reports/ReportFlowTest.php` |
+| `FR-REP-06` | Perbandingan periode denominator nol | `tests/Feature/Reports/ReportFlowTest.php` |
+| Authorization | Kasir tidak dapat mengakses report; scope sales report | `tests/Feature/Reports/ReportFlowTest.php` |

@@ -152,3 +152,9 @@ Dokumen ini mendefinisikan seluruh invariant dan aturan bisnis resmi aplikasi Ka
 | **BR-OPNAME-04** | Maker-checker approval | Penghitung/pembuat tidak boleh menyetujui sesi sendiri; Admin override wajib reason dan tercatat audit. Reject wajib alasan dan melepas lock. | `StockOpnameFlowTest` |
 | **BR-OPNAME-05** | Posting atomik & sekali | Posting hanya dari state approved, membuat movement hanya untuk variance tidak nol, update balance, audit, lalu release seluruh lock. Posting ulang ditolak. | `StockOpnameFlowTest` |
 | **BR-OPNAME-06** | Cancellation tanpa lock yatim | Cancel wajib reason dan hanya dari draft/counting/rejected/pending_approval; semua lock aktif dilepas tanpa movement stok. | `StockOpnameFlowTest` |
+
+| **BR-REP-01** | Periode & timezone | Filter `YYYY-MM-DD` inklusif di Asia/Jakarta; batas hari dikonversi ke awal/akhir hari. Penjualan memakai `completed_at`, retur `approved_at`, expense `expense_date`, cash flow `cash_movements.occurred_at`. | `ReportFlowTest` |
+| **BR-REP-02** | P&L snapshot | Gross sales/discounts/COGS dari snapshot sale item; sales returns dari retur approved; COGS reversal hanya retur resellable. Damaged return tidak menjadi reversal dan tidak dibebankan dua kali. Shrinkage opname posted mengurangi operating result. | `ReportFlowTest` |
+| **BR-REP-03** | Cash flow ledger | Inflow/outflow dihitung dari `cash_movements.occurred_at`; saldo awal adalah net seluruh movement sebelum periode; closing = opening + inflow - outflow. | `ReportFlowTest` |
+| **BR-REP-04** | Authorization & report totals | Kasir hanya dapat melihat penjualan miliknya; route report memerlukan `reports.view_all`/`reports.view_limited`. Total report wajib sama dengan detail sumber dan pagination server-side. | `ReportFlowTest` |
+| **BR-REP-05** | Zero denominator | Operating margin dan perubahan periode bernilai `null`/`—` saat basis nol; tidak membagi nol. | `ReportFlowTest` |

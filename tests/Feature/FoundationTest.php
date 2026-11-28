@@ -8,16 +8,16 @@ test('guest is redirected from root to login', function () {
     $response->assertRedirect('/login');
 });
 
-test('foundation dashboard returns successful response for authenticated user and contains required components', function () {
+test('dashboard returns successful response for authenticated user and contains operational summaries', function () {
     $admin = User::where('email', 'admin@kasirpro.local')->first();
 
     $response = $this->actingAs($admin)->get('/');
 
     $response->assertStatus(200);
-    $response->assertSee('KasirPro Application Foundation');
-    $response->assertSee('Tahap 01 Selesai');
-    $response->assertSee('MySQL / InnoDB');
-    $response->assertSee(config('app.timezone'));
+    $response->assertSee('Dashboard Operasional');
+    $response->assertSee('Transaksi Hari Ini');
+    $response->assertSee('Stok Menipis');
+    $response->assertSee('Asia/Jakarta');
 });
 
 test('incoming requests receive x-request-id header in response', function () {

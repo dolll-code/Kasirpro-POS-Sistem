@@ -12,6 +12,7 @@ use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\PurchaseReceiptController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\StockOpnameController;
@@ -32,10 +33,13 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
-    // Dashboard / Foundation Landing
-    Route::get('/', function () {
-        return view('pages.foundation');
-    })->name('dashboard');
+    // Dashboard
+    Route::get('/', [ReportController::class, 'index'])->name('dashboard');
+
+    // Reports
+    Route::prefix('reports')->name('reports.')->middleware('permission:reports.view_all|reports.view_limited')->group(function () {
+        Route::get('/{type}', [ReportController::class, 'show'])->name('show');
+    });
 
     // User Profile & Password Change (FR-AUTH-05)
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
@@ -276,6 +280,10 @@ Route::middleware(['auth', 'active'])->group(function () {
 
         Route::middleware('permission:products.view')->group(function () {
             Route::get('/products/barcode/{barcode}', [PosController::class, 'barcodeLookup'])->name('api.products.barcode');
+        });
+
+        Route::middleware('permission:reports.view_all|reports.view_limited')->group(function () {
+            Route::get('/reports/{type}', [ReportController::class, 'report'])->name('api.reports.show');
         });
     });
 });

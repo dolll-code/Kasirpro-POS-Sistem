@@ -462,3 +462,11 @@ Web routes memakai `/stock-opnames`; JSON API memakai `/api/v1/stock-opnames`.
 | `POST` | `/api/v1/stock-opnames/{opname}/cancel` | `stock_opname.create` | Cancel + reason, release lock |
 
 Count body: `items[item_id][counted_quantity]` dan optional notes. Decision body: `decision` (`approved`/`rejected`), `note`, optional `admin_override_reason`, dan `items[item_id][positive_unit_cost]`/`positive_cost_reason` untuk variance positif tanpa cost basis. Errors: `STOCK_OPNAME_*` (409), maker-checker unauthorized (403).
+
+## 12. Dashboard dan reporting
+
+Web: `GET /reports/{type}`, `GET /` (dashboard). API: `GET /api/v1/reports/{type}`.
+
+Tipe report: `sales`, `purchases`, `returns`, `expenses`, `inventory`, `profit-loss`, `cash-flow`, `stock-opnames`, `product-performance`. Filter `from`, `to` (`YYYY-MM-DD`, Asia/Jakarta, inklusif), `per_page` (1-100), dan untuk P&L `compare_from`/`compare_to`. Sales report mendukung `sort` whitelist (`transaction_number`, `completed_at`, `grand_total`, `sale_status`) serta `dir=asc|desc`. Permission: `reports.view_all` atau `reports.view_limited`; sales report membatasi kasir ke transaksi miliknya.
+
+P&L response diberi label "Laba Rugi Sederhana / Ringkasan Hasil Operasional" dan tidak diklaim sebagai laporan akuntansi formal.
