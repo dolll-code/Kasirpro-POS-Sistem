@@ -444,3 +444,22 @@ Hanya Admin/Supervisor dengan izin `payments.verify_transfer` dapat membuka menu
 1. Expense posted dapat di-void dengan alasan wajib.
 2. Isi hanya jumlah uang yang benar-benar sudah dikembalikan. Sistem membuat cash reversal append-only untuk jumlah itu; sisa yang belum kembali disimpan sebagai unrecovered tanpa cash inflow fiktif.
 3. Expense recognition dibalik pada `voided_at`; pembayaran/reversal memengaruhi cash flow pada waktu masing-masing. Detail menampilkan payment history, cash movements, actor, reason, dan timeline.
+
+## 15. Stock opname
+
+### Mulai sesi
+1. Buka **Stok Opname** lalu pilih **Mulai Sesi Opname**.
+2. Pilih produk yang akan dihitung, isi catatan bila perlu, lalu mulai. Sistem menyimpan stok dan HPP saat itu dan mengunci produk dari seluruh mutasi stok sampai sesi selesai.
+3. Selama lock aktif, penjualan, penerimaan, retur, reservasi, atau penyesuaian stok untuk produk tersebut akan ditolak. Satu produk hanya dapat berada dalam satu sesi opname aktif.
+
+### Hitung dan submit
+1. Buka detail sesi berstatus **counting**.
+2. Isi counted quantity sesuai presisi satuan dan catatan per item. Simpan; boleh bertahap.
+3. Setelah semua item memiliki hasil hitung, klik **Submit untuk Approval**. Variance dihitung server.
+4. Jika sesi **rejected**, isi alasan reopen lalu hitung ulang. Kembali ke counting dengan lock baru dan snapshot terbaru.
+
+### Approval dan posting
+1. Supervisor/Admin membuka sesi **pending_approval**. Penghitung/pembuat tidak boleh menyetujui sesi sendiri; Admin override wajib alasan.
+2. Negative variance memakai HPP snapshot; positive variance memakai HPP aktif. Jika HPP aktif masih nol, masukkan unit cost dan reason sebelum menyetujui.
+3. Setelah **approved**, klik **Posting Sekarang**. Movement hanya dibuat untuk variance tidak nol, saldo diperbarui, audit dicatat, dan seluruh lock dilepas. Posting hanya dapat dilakukan sekali.
+4. **Batalkan Sesi** melepas lock tanpa membuat movement stok. Semua langkah membutuhkan alasan dan tercatat di timeline/audit.

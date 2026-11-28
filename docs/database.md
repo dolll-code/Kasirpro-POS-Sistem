@@ -701,3 +701,15 @@ Void menyimpan `void_reason`, actor/time, `void_cash_refund_amount` aktual, dan 
 ### 10.2 `expense_payments` dan `expense_void_reversals`
 
 Payment menyimpan expense, akun kas, `cash_movement_id`, nominal, `paid_at`, pembuat, unique `idempotency_key`, dan `payload_hash`. Cash movement `EXPENSE_PAYMENT` dibuat saat pembayaran aktual. Void reversal menautkan payment/movement asal ke cash movement reversal, jumlah aktual, reason, dan actor. Movement asal tetap append-only.
+
+## 11. Stock opname
+
+### 11.1 `stock_opnames` dan `stock_opname_items`
+
+Sesi opname memakai nomor `SO-YYYYMMDD-xxxxx` dengan state `draft`, `counting`, `pending_approval`, `rejected`, `approved`, `posted`, `cancelled`. Saat start, tiap item menyimpan `expected_quantity` dan `average_cost_snapshot`. Counting menyimpan `counted_quantity`, actor, dan waktu; submit menghitung `variance = counted - expected` untuk seluruh item.
+
+Negative variance memakai `average_cost_snapshot`; positive variance memakai `active_cost_snapshot` saat submit/posting. Jika cost basis aktif nol, `positive_unit_cost` dan `positive_cost_reason` wajib diisi Admin/Supervisor.
+
+### 11.2 `stock_opname_locks`
+
+`product_id` menyimpan histori produk, sedangkan `active_product_id` bernilai produk selama lock aktif dan diubah `NULL` saat release (reject/cancel/post). Unique `active_product_id` menegakkan maksimal satu lock aktif per produk. Semua mutasi InventoryService menolak produk yang memiliki lock aktif; release tidak pernah meninggalkan lock yatim.

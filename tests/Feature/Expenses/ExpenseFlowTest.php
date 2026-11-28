@@ -12,7 +12,6 @@ use App\Models\User;
 use App\Services\CashMovementService;
 use App\Services\ExpenseService;
 use Illuminate\Support\Str;
-use InvalidArgumentException;
 
 beforeEach(function () {
     $this->admin = User::factory()->create(['role_id' => Role::where('code', 'admin')->value('id'), 'is_active' => true]);

@@ -51,6 +51,33 @@ class InventoryService
             ->firstOrFail();
     }
 
+    public function assertNoActiveStockOpnameLock(Product|int $product, ?int $allowOpnameId = null): void
+    {
+        $productId = $product instanceof Product ? $product->id : $product;
+        $query = DB::table('stock_opname_locks')
+            ->where('product_id', $productId)
+            ->whereNotNull('active_product_id');
+        if ($allowOpnameId !== null) {
+            $query->where('stock_opname_id', '!=', $allowOpnameId);
+        }
+        $lock = $query->first();
+        if ($lock) {
+            throw new InvalidArgumentException("Produk ID [{$productId}] sedang dikunci sesi stock opname #{$lock->stock_opname_id}; mutasi stok ditolak.");
+        }
+    }
+
+    public function assertNoActiveStockReservation(Product|int $product): void
+    {
+        $productId = $product instanceof Product ? $product->id : $product;
+        if (DB::table('stock_reservation_items as sri')
+            ->join('stock_reservations as sr', 'sr.id', '=', 'sri.reservation_id')
+            ->where('sri.product_id', $productId)
+            ->where('sr.status', 'active')
+            ->exists()) {
+            throw new InvalidArgumentException("Produk ID [{$productId}] memiliki reservasi stok transfer aktif dan belum dapat di-opname.");
+        }
+    }
+
     /**
      * Validate whether product has sufficient available stock (on_hand - reserved >= quantity).
      */
@@ -84,7 +111,8 @@ class InventoryService
         ?string $sourceNumber = null,
         ?int $userId = null,
         ?string $notes = null,
-        ?DateTimeInterface $occurredAt = null
+        ?DateTimeInterface $occurredAt = null,
+        ?int $allowStockOpnameId = null
     ): StockMovement {
         return DB::transaction(function () use (
             $product,
@@ -96,7 +124,8 @@ class InventoryService
             $sourceNumber,
             $userId,
             $notes,
-            $occurredAt
+            $occurredAt,
+            $allowStockOpnameId
         ) {
             $prod = $product instanceof Product ? $product : Product::with('unit')->findOrFail($product);
             $qtyRaw = $quantity instanceof Decimal ? $quantity->toString() : (string) $quantity;
@@ -121,12 +150,13 @@ class InventoryService
 
             // Lock balance for update
             $balance = $this->lockBalance($prod);
+            $this->assertNoActiveStockOpnameLock($prod, $allowStockOpnameId);
 
             $before = Decimal::of($balance->quantity_on_hand, 3);
             $after = $before->add($qty);
 
             // Update average cost using CostingService if applicable
-            if ($movementType === 'IN_PURCHASE' || $movementType === 'IN_INITIAL') {
+            if (in_array($movementType, ['IN_PURCHASE', 'IN_INITIAL', 'IN_STOCKTAKE'], true)) {
                 $this->costingService->recordReceiptCost(
                     $prod,
                     $qty,
@@ -198,7 +228,9 @@ class InventoryService
         ?string $sourceNumber = null,
         ?int $userId = null,
         ?string $notes = null,
-        ?DateTimeInterface $occurredAt = null
+        ?DateTimeInterface $occurredAt = null,
+        ?int $allowStockOpnameId = null,
+        string|Decimal|null $costOverride = null
     ): StockMovement {
         return DB::transaction(function () use (
             $product,
@@ -209,7 +241,9 @@ class InventoryService
             $sourceNumber,
             $userId,
             $notes,
-            $occurredAt
+            $occurredAt,
+            $allowStockOpnameId,
+            $costOverride
         ) {
             $prod = $product instanceof Product ? $product : Product::with('unit')->findOrFail($product);
             $qtyRaw = $quantity instanceof Decimal ? $quantity->toString() : (string) $quantity;
@@ -229,6 +263,7 @@ class InventoryService
 
             // Lock balance for update
             $balance = $this->lockBalance($prod);
+            $this->assertNoActiveStockOpnameLock($prod, $allowStockOpnameId);
 
             $onHand = Decimal::of($balance->quantity_on_hand, 3);
             $reserved = Decimal::of($balance->quantity_reserved, 3);
@@ -256,8 +291,12 @@ class InventoryService
                 );
             }
 
+            if ($movementType === 'OUT_STOCKTAKE' && $after->isLessThan($reserved)) {
+                throw new InvalidArgumentException("Variance stok opname tidak boleh mengurangi on-hand di bawah stok yang direservasi ({$reserved}).");
+            }
+
             // Capture unit cost snapshot from average cost
-            $unitCost = Decimal::of($balance->average_cost, 2);
+            $unitCost = Decimal::of($costOverride ?? $balance->average_cost, 2);
             $totalCost = $qty->mul($unitCost, 2);
 
             // If sale, record cost snapshot and handle reset if stock becomes 0
@@ -306,6 +345,7 @@ class InventoryService
     {
         $reserve = function () use ($product, $quantity) {
             $balance = $this->lockBalance($product);
+            $this->assertNoActiveStockOpnameLock($product);
             $qty = Decimal::of($quantity, 3);
 
             if ($qty->isNegative() || $qty->isZero()) {

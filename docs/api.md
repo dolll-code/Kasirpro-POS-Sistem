@@ -445,3 +445,20 @@ Web routes memakai `/expenses`; JSON API memakai `/api/v1/expenses`.
 | `POST` | `/api/v1/expenses/{expense}/void` | `expenses.post` | Void dengan reason dan cash refund aktual |
 
 Expense body: `expense_category_id`, `expense_date`, `description`, `amount` (>0), `notes`, optional `is_landed_cost`, `landed_cost_reference`. Payment body: `cash_account_id`, `amount`, `reference_number`, `paid_at`, idempotency key. Void body: `reason`, `cash_refund_amount` dari nol sampai jumlah payment aktual. Errors: `EXPENSE_CANNOT_POST`, `EXPENSE_PAYMENT_INVALID`, `INSUFFICIENT_CASH_BALANCE`, `EXPENSE_VOID_INVALID` (409); missing key 422.
+
+## 11. Stock opname
+
+Web routes memakai `/stock-opnames`; JSON API memakai `/api/v1/stock-opnames`.
+
+| Method | Endpoint | Permission | Aksi |
+|---|---|---|---|
+| `GET` | `/api/v1/stock-opnames` | `stock_opname.*` | Riwayat/filter status |
+| `POST` | `/api/v1/stock-opnames` | `stock_opname.create` | Start sesi; body `product_ids[]`, `notes` |
+| `GET` | `/api/v1/stock-opnames/{opname}` | `stock_opname.*` | Detail item, variance, lock, timeline |
+| `PUT` | `/api/v1/stock-opnames/{opname}/count` | `stock_opname.count` | Simpan counted quantity |
+| `POST` | `/api/v1/stock-opnames/{opname}/submit` | `stock_opname.count` | Submit ke approval |
+| `POST` | `/api/v1/stock-opnames/{opname}/decision` | `stock_opname.approve` | Approve/reject; optional positive cost |
+| `POST` | `/api/v1/stock-opnames/{opname}/post` | `stock_opname.post` | Posting adjustment, release lock |
+| `POST` | `/api/v1/stock-opnames/{opname}/cancel` | `stock_opname.create` | Cancel + reason, release lock |
+
+Count body: `items[item_id][counted_quantity]` dan optional notes. Decision body: `decision` (`approved`/`rejected`), `note`, optional `admin_override_reason`, dan `items[item_id][positive_unit_cost]`/`positive_cost_reason` untuk variance positif tanpa cost basis. Errors: `STOCK_OPNAME_*` (409), maker-checker unauthorized (403).

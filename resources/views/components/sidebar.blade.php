@@ -149,6 +149,13 @@
                                 </a>
                             </li>
                         @endif
+                        @if($user && $user->hasPermission('stock_opname.create'))
+                            <li>
+                                <a href="{{ route('stock-opnames.index') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('stock-opnames.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2 text-sm font-medium">
+                                    Stok Opname
+                                </a>
+                            </li>
+                        @endif
 
                         <!-- Purchasing Links (Mobile) -->
                         @if($user && ($user->hasPermission('purchases.view') || $user->hasPermission('purchases.create')))
@@ -383,13 +390,12 @@
                     <a href="{{ route('sales-returns.index') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md {{ request()->routeIs('sales-returns.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">Retur & Refund</a>
                 @endif
                 @if($user && $user->hasPermission('stock_opname.create'))
-                    <span class="flex items-center px-3 py-2 text-sm font-medium rounded-lg text-slate-500 opacity-70 cursor-not-allowed">
-                        <svg class="mr-3 h-5 w-5 shrink-0 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <a href="{{ route('stock-opnames.index') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md {{ request()->routeIs('stock-opnames.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">
+                        <svg class="mr-3 h-5 w-5 shrink-0 {{ request()->routeIs('stock-opnames.*') ? 'text-white' : 'text-slate-400 group-hover:text-slate-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>
                         Stok Opname
-                        <span class="ml-auto text-[10px] font-mono uppercase bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">T09</span>
-                    </span>
+                    </a>
                 @endif
 
                 @if($user && ($user->hasPermission('reports.view_all') || $user->hasPermission('reports.view_limited')))

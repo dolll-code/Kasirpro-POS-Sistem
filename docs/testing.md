@@ -138,3 +138,7 @@ php artisan test --filter=SaleConcurrencyTest
 | `FR-DIS-03` | Alokasi diskon transaksi proporsional & residual rounding deterministik | `tests/Feature/Sales/DiscountEngineTest.php` |
 | Concurrency | Integritas transaksi paralel PO receiving & supplier payment | `tests/Feature/Purchasing/PurchaseConcurrencyTest.php` |
 | Concurrency | Integritas checkout serentak dua kasir berebut stok terakhir | `tests/Feature/Sales/SaleConcurrencyTest.php` |
+
+| `FR-STO-01` | Start opname, lock produk, snapshot expected & average cost | `tests/Feature/Inventory/StockOpnameFlowTest.php` |
+| `FR-STO-02` | Variance negative/positive, approval maker-checker, posting sekali & release lock | `tests/Feature/Inventory/StockOpnameFlowTest.php` |
+| Concurrency | Sesi opname kedua pada produk sama ditolak unique active lock | `tests/Feature/Inventory/StockOpnameFlowTest.php` |

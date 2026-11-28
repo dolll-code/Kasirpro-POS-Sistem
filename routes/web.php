@@ -14,6 +14,7 @@ use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\PurchaseReceiptController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SalesReturnController;
+use App\Http\Controllers\StockOpnameController;
 use App\Http\Controllers\StoreProfileController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierPaymentController;
@@ -100,6 +101,18 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/{expense}/post', [ExpenseController::class, 'post'])->middleware('permission:expenses.post')->name('post');
         Route::post('/{expense}/payments', [ExpenseController::class, 'pay'])->middleware('permission:expenses.pay')->name('payments.store');
         Route::post('/{expense}/void', [ExpenseController::class, 'void'])->middleware('permission:expenses.post')->name('void');
+    });
+
+    Route::prefix('stock-opnames')->name('stock-opnames.')->group(function () {
+        Route::get('/', [StockOpnameController::class, 'index'])->middleware('permission:stock_opname.create|stock_opname.count|stock_opname.approve|stock_opname.post')->name('index');
+        Route::get('/create', [StockOpnameController::class, 'create'])->middleware('permission:stock_opname.create')->name('create');
+        Route::post('/', [StockOpnameController::class, 'store'])->middleware('permission:stock_opname.create')->name('store');
+        Route::get('/{stockOpname}', [StockOpnameController::class, 'show'])->middleware('permission:stock_opname.create|stock_opname.count|stock_opname.approve|stock_opname.post')->name('show');
+        Route::put('/{stockOpname}/count', [StockOpnameController::class, 'count'])->middleware('permission:stock_opname.count')->name('count');
+        Route::post('/{stockOpname}/submit', [StockOpnameController::class, 'submit'])->middleware('permission:stock_opname.count')->name('submit');
+        Route::post('/{stockOpname}/decision', [StockOpnameController::class, 'decide'])->middleware('permission:stock_opname.approve')->name('decide');
+        Route::post('/{stockOpname}/post', [StockOpnameController::class, 'post'])->middleware('permission:stock_opname.post')->name('post');
+        Route::post('/{stockOpname}/cancel', [StockOpnameController::class, 'cancel'])->middleware('permission:stock_opname.create')->name('cancel');
     });
 
     // Master: Cash Accounts & Store Settings (FR-MST-06, FR-STORE-01, FR-CASH-01..02)
@@ -225,6 +238,17 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('/{expense}/post', [ExpenseController::class, 'post'])->middleware('permission:expenses.post')->name('post');
             Route::post('/{expense}/payments', [ExpenseController::class, 'pay'])->middleware('permission:expenses.pay')->name('payments.store');
             Route::post('/{expense}/void', [ExpenseController::class, 'void'])->middleware('permission:expenses.post')->name('void');
+        });
+
+        Route::prefix('stock-opnames')->name('api.stock-opnames.')->group(function () {
+            Route::get('/', [StockOpnameController::class, 'index'])->middleware('permission:stock_opname.create|stock_opname.count|stock_opname.approve|stock_opname.post')->name('index');
+            Route::post('/', [StockOpnameController::class, 'store'])->middleware('permission:stock_opname.create')->name('store');
+            Route::get('/{stockOpname}', [StockOpnameController::class, 'show'])->middleware('permission:stock_opname.create|stock_opname.count|stock_opname.approve|stock_opname.post')->name('show');
+            Route::put('/{stockOpname}/count', [StockOpnameController::class, 'count'])->middleware('permission:stock_opname.count')->name('count');
+            Route::post('/{stockOpname}/submit', [StockOpnameController::class, 'submit'])->middleware('permission:stock_opname.count')->name('submit');
+            Route::post('/{stockOpname}/decision', [StockOpnameController::class, 'decide'])->middleware('permission:stock_opname.approve')->name('decide');
+            Route::post('/{stockOpname}/post', [StockOpnameController::class, 'post'])->middleware('permission:stock_opname.post')->name('post');
+            Route::post('/{stockOpname}/cancel', [StockOpnameController::class, 'cancel'])->middleware('permission:stock_opname.create')->name('cancel');
         });
 
         Route::middleware('permission:sales.view_all|sales.view_own')->group(function () {

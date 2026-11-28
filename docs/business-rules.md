@@ -145,3 +145,10 @@ Dokumen ini mendefinisikan seluruh invariant dan aturan bisnis resmi aplikasi Ka
 | **BR-EXP-05** | P&L vs cash flow date | Recognition memakai `expense_date` dan expense reversal pada `voided_at`; cash flow memakai `paid_at` dikurangi reversal aktual. | `ExpenseFlowTest` |
 
 
+
+| **BR-OPNAME-01** | Sesi & unique active lock | Start memilih produk aktif, mengambil row lock, menyimpan expected/HPP snapshot, dan membuat satu lock aktif per produk. Produk terkunci ditolak seluruh mutasi stok; sesi kedua pada produk sama gagal di unique active lock. | `StockOpnameFlowTest` |
+| **BR-OPNAME-02** | Counting & submit | Counted quantity mengikuti presisi unit dan tidak negatif. Submit hanya untuk state counting dan wajib seluruh item memiliki hasil hitung; variance dihitung server-side. | `StockOpnameFlowTest` |
+| **BR-OPNAME-03** | Variance valuation | Negative variance memakai HPP snapshot; positive variance memakai average cost aktif saat submit/posting. Bila cost basis nol, Admin/Supervisor wajib mengisi unit cost dan reason. | `StockOpnameFlowTest` |
+| **BR-OPNAME-04** | Maker-checker approval | Penghitung/pembuat tidak boleh menyetujui sesi sendiri; Admin override wajib reason dan tercatat audit. Reject wajib alasan dan melepas lock. | `StockOpnameFlowTest` |
+| **BR-OPNAME-05** | Posting atomik & sekali | Posting hanya dari state approved, membuat movement hanya untuk variance tidak nol, update balance, audit, lalu release seluruh lock. Posting ulang ditolak. | `StockOpnameFlowTest` |
+| **BR-OPNAME-06** | Cancellation tanpa lock yatim | Cancel wajib reason dan hanya dari draft/counting/rejected/pending_approval; semua lock aktif dilepas tanpa movement stok. | `StockOpnameFlowTest` |
