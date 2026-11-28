@@ -68,8 +68,11 @@ class ReportController extends Controller
             $query->where('user_id', $request->user()->id);
         }
         $exports = $query->latest()->paginate(20);
+        $monitoring = $request->user()->hasRole('admin') ? $this->exportService->monitoringSummary() : null;
 
-        return $request->wantsJson() ? response()->json(['data' => $exports]) : view('reports.exports', compact('exports'));
+        return $request->wantsJson()
+            ? response()->json(['data' => $exports, 'monitoring' => $monitoring])
+            : view('reports.exports', compact('exports', 'monitoring'));
     }
 
     public function exportStatus(Request $request, ReportExport $export): View|JsonResponse
@@ -112,6 +115,7 @@ class ReportController extends Controller
             'cash-flow' => $this->reportService->cashFlow($from, $to, $perPage),
             'stock-opnames' => $this->reportService->stockOpnameReport($from, $to, $perPage),
             'product-performance' => $this->reportService->productPerformance($from, $to, $perPage),
+            'inventory-valuation' => $this->reportService->inventoryValuation($request->input('as_of', $to), $perPage),
             default => abort(404, 'Jenis laporan tidak dikenal.'),
         };
     }
@@ -128,6 +132,7 @@ class ReportController extends Controller
             'cash-flow' => 'Laporan Arus Kas',
             'stock-opnames' => 'Laporan Stok Opname',
             'product-performance' => 'Performa Produk',
+            'inventory-valuation' => 'Valuasi Persediaan Historis',
             default => 'Laporan',
         };
     }

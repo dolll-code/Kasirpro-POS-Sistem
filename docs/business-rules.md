@@ -163,3 +163,12 @@ Dokumen ini mendefinisikan seluruh invariant dan aturan bisnis resmi aplikasi Ka
 | **BR-EXPORT-02** | Rekonsiliasi preview/export | Ekspor memakai sumber data dan snapshot yang sama dengan preview report; maksimal `REPORT_EXPORT_ROW_LIMIT` baris. Total dan filter harus identik. | `ReportExportFlowTest` |
 | **BR-EXPORT-03** | Tipe data XLSX | Angka disimpan numeric, tanggal sebagai date dengan format eksplisit, header konsisten. Teks berawalan `=`, `+`, `-`, `@`, tab, atau carriage return diberi prefix apostrof untuk mencegah formula injection. | `ReportExportFlowTest` |
 | **BR-EXPORT-04** | Queue idempotent | Job memakai `exportId` sebagai payload tanpa secret, retry-safe (completed/expired tidak diproses ulang), `tries=3`, failed handler menandai record `failed`; status `processing` unik per record. | `ReportExportFlowTest` |
+
+## 12. P1 Enhancements
+
+| **BR-P1-01** | Product performance | Gross sales, diskon, retur, net sales, COGS, dan gross profit dihitung per produk dari snapshot sale item; retur resellable mengurangi COGS, damaged tidak menjadi reversal. | `P1EnhancementTest` |
+| **BR-P1-02** | Historical valuation | Quantity historis dari stock movement terakhir <= tanggal laporan, cost dari ledger `unit_cost` (fallback product cost history). Current average cost tidak dipakai menggantikan historical. | `P1EnhancementTest` |
+| **BR-P1-03** | Period comparison | Durasi periode dihitung inklusif; periode pembanding adalah durasi sama tepat sebelum periode utama. Perubahan persen bernilai `null` bila basis nol. | `P1EnhancementTest` |
+| **BR-P1-04** | Cash adjustment non-operasional | Direction/category terbatas, reason wajib, status pending → posted/rejected/cancelled, maker-checker, Admin override beralasan. Cash movement baru dibuat saat approval posted dan tidak masuk omzet/expense. | `P1EnhancementTest` |
+| **BR-P1-05** | Branding & receipt | Receipt memakai snapshot toko, logo privat bila ada, footer, info transfer, output 58/80mm. | `P1EnhancementTest` |
+| **BR-P1-06** | Export monitoring | Export history menampilkan status, antrean pending, failed jobs, dan stale processing diubah failed agar dapat di-retry. | `ReportExportFlowTest`, `P1EnhancementTest` |

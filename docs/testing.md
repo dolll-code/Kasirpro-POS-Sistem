@@ -155,3 +155,10 @@ php artisan test --filter=SaleConcurrencyTest
 | `FR-EXPORT-03` | Riwayat status requested/processing/completed/failed/expired | `tests/Feature/Reports/ReportExportFlowTest.php` |
 | Queue | Job idempotent, retry-safe, failed handler, export ID payload | `tests/Feature/Reports/ReportExportFlowTest.php` |
 | XLSX | Numeric/date types dan formula injection sanitization | `tests/Feature/Reports/ReportExportFlowTest.php` |
+
+| `FR-REP-04` | Product performance snapshot | `tests/Feature/Reports/P1EnhancementTest.php` |
+| `FR-REP-05` | Historical inventory valuation | `tests/Feature/Reports/P1EnhancementTest.php` |
+| `FR-REP-06` | Period comparison & zero denominator | `tests/Feature/Reports/P1EnhancementTest.php` |
+| `FR-CASH-03` | Cash adjustment maker-checker | `tests/Feature/Reports/P1EnhancementTest.php` |
+| Receipt | Branding/thermal 58-80mm | `tests/Feature/Reports/P1EnhancementTest.php` |
+| Dashboard | Charts dan permission-aware summary | `tests/Feature/Reports/P1EnhancementTest.php` |

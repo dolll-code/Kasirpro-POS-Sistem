@@ -15,7 +15,7 @@ class ReportExportService
 {
     public const DISK = 'private';
 
-    public const SUPPORTED_TYPES = ['sales', 'purchases', 'returns', 'expenses', 'inventory', 'profit-loss', 'cash-flow', 'stock-opnames', 'product-performance'];
+    public const SUPPORTED_TYPES = ['sales', 'purchases', 'returns', 'expenses', 'inventory', 'profit-loss', 'cash-flow', 'stock-opnames', 'product-performance', 'inventory-valuation'];
 
     public const FORMATS = ['pdf', 'xlsx'];
 
@@ -129,8 +129,29 @@ class ReportExportService
         ];
     }
 
+    public function monitoringSummary(): array
+    {
+        return [
+            'requested' => ReportExport::where('status', 'requested')->count(),
+            'processing' => ReportExport::where('status', 'processing')->count(),
+            'completed' => ReportExport::where('status', 'completed')->count(),
+            'failed' => ReportExport::where('status', 'failed')->count(),
+            'expired' => ReportExport::where('status', 'expired')->count(),
+            'failed_jobs' => DB::table('failed_jobs')->count(),
+            'pending_jobs' => DB::table('jobs')->count(),
+        ];
+    }
+
     public function expireOverdue(): int
     {
+        // Stale processing jobs (worker mati) dianggap failed agar retry-safe.
+        ReportExport::where('status', 'processing')->where('processing_at', '<=', Carbon::now('Asia/Jakarta')->subHours(1))->update([
+            'status' => 'failed',
+            'failed_at' => Carbon::now('Asia/Jakarta'),
+            'error_code' => 'EXPORT_STALE',
+            'error_message' => 'Proses ekspor melewati batas waktu.',
+        ]);
+
         $exports = ReportExport::where('status', 'completed')->whereNotNull('expires_at')->where('expires_at', '<=', Carbon::now('Asia/Jakarta'))->get();
         $count = 0;
         foreach ($exports as $export) {

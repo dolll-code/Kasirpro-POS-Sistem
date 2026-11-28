@@ -6,6 +6,7 @@ use App\Models\CashMovement;
 use App\Models\Expense;
 use App\Models\InventoryBalance;
 use App\Models\Product;
+use App\Models\ProductCostHistory;
 use App\Models\Purchase;
 use App\Models\Sale;
 use App\Models\SaleItem;
@@ -17,6 +18,7 @@ use App\Models\StockOpnameItem;
 use App\Models\User;
 use App\Support\Decimal;
 use Carbon\Carbon;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class ReportService
 {
@@ -30,8 +32,17 @@ class ReportService
         if ($start->greaterThan($end)) {
             [$start, $end] = [$end->copy()->startOfDay(), $start->copy()->endOfDay()];
         }
+        $days = $start->copy()->startOfDay()->diffInDays($end->copy()->startOfDay()) + 1;
 
-        return ['from' => $start, 'to' => $end, 'from_date' => $start->toDateString(), 'to_date' => $end->toDateString()];
+        return [
+            'from' => $start,
+            'to' => $end,
+            'from_date' => $start->toDateString(),
+            'to_date' => $end->toDateString(),
+            'days' => (int) $days,
+            'comparison_from_date' => $start->copy()->subDays($days)->toDateString(),
+            'comparison_to_date' => $start->copy()->subDay()->toDateString(),
+        ];
     }
 
     public function dashboard(User $user): array
@@ -51,11 +62,29 @@ class ReportService
                     ->orWhereHas('inventoryBalance', fn ($b) => $b->where('quantity_on_hand', '<=', 0));
             })->count();
 
+        $todayProfit = $this->profitLossPeriod($period['from_date'], $period['to_date'])['summary'];
+        $chart = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $day = Carbon::now(self::TIMEZONE)->subDays($i);
+            $sum = (string) Sale::whereIn('sale_status', ['completed', 'partially_returned', 'fully_returned'])
+                ->whereDate('completed_at', $day->toDateString())
+                ->when(! $canViewAll, fn ($q) => $q->where('cashier_id', $user->id))
+                ->sum('grand_total');
+            $chart[] = ['label' => $day->format('d/m'), 'date' => $day->toDateString(), 'value' => Decimal::of($sum, 2)->toString()];
+        }
+        $max = max(array_map(fn ($p) => (float) $p['value'], $chart)) ?: 1;
+        foreach ($chart as &$point) {
+            $point['percent'] = round(((float) $point['value'] / $max) * 100, 1);
+        }
+        unset($point);
+
         return [
             'can_view_all' => $canViewAll,
             'sales' => $sales['summary'],
             'low_stock' => $lowStock,
             'out_of_stock' => $outOfStock,
+            'today_profit' => $todayProfit,
+            'chart' => $chart,
             'recent_sales' => Sale::with(['cashier:id,name'])
                 ->when(! $canViewAll, fn ($q) => $q->where('cashier_id', $user->id))
                 ->where('sale_status', '!=', 'pending_payment')
@@ -257,16 +286,104 @@ class ReportService
     public function productPerformance(?string $from = null, ?string $to = null, int $perPage = 15): array
     {
         $period = $this->period($from, $to);
-        $data = SaleItem::query()
+        $sold = SaleItem::query()
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
             ->whereIn('sales.sale_status', ['completed', 'partially_returned', 'fully_returned'])
             ->whereBetween('sales.completed_at', [$period['from'], $period['to']])
-            ->selectRaw('sale_items.product_id, sale_items.product_name_snapshot, SUM(sale_items.quantity) as quantity, SUM(sale_items.net_line_total) as net_sales, SUM(sale_items.line_discount + sale_items.allocated_transaction_discount) as discounts, SUM(sale_items.cost_total_snapshot) as cogs')
-            ->groupBy('sale_items.product_id', 'sale_items.product_name_snapshot')
-            ->orderByDesc('net_sales')
-            ->paginate($perPage);
+            ->selectRaw('sale_items.product_id, sale_items.product_name_snapshot, sale_items.sku_snapshot, SUM(sale_items.quantity) as quantity, SUM(sale_items.gross_line_total) as gross_sales, SUM(sale_items.line_discount + sale_items.allocated_transaction_discount) as discounts, SUM(sale_items.net_line_total) as net_sales, SUM(sale_items.cost_total_snapshot) as cogs')
+            ->groupBy('sale_items.product_id', 'sale_items.product_name_snapshot', 'sale_items.sku_snapshot')
+            ->get()
+            ->keyBy('product_id');
+
+        $returned = SalesReturnItem::query()
+            ->join('sales_returns', 'sales_returns.id', '=', 'sales_return_items.sales_return_id')
+            ->join('sale_items', 'sale_items.id', '=', 'sales_return_items.sale_item_id')
+            ->whereIn('sales_returns.status', ['approved', 'completed'])
+            ->whereBetween('sales_returns.approved_at', [$period['from'], $period['to']])
+            ->selectRaw('sale_items.product_id, SUM(sales_return_items.quantity) as return_quantity, SUM(sales_return_items.return_value) as returns, SUM(CASE WHEN sales_return_items.condition = ? THEN sales_return_items.cost_value ELSE 0 END) as cogs_reversal', ['resellable'])
+            ->groupBy('sale_items.product_id')
+            ->get()
+            ->keyBy('product_id');
+
+        $rows = $sold->map(function ($row) use ($returned) {
+            $returnRow = $returned->get($row->product_id);
+            $returns = Decimal::of((string) ($returnRow->returns ?? 0), 2);
+            $cogsReversal = Decimal::of((string) ($returnRow->cogs_reversal ?? 0), 2);
+            $netSales = Decimal::of((string) $row->net_sales, 2)->sub($returns);
+            $cogs = Decimal::of((string) $row->cogs, 2)->sub($cogsReversal);
+
+            return [
+                'product_id' => (int) $row->product_id,
+                'product_name_snapshot' => $row->product_name_snapshot,
+                'sku_snapshot' => $row->sku_snapshot,
+                'quantity' => (string) $row->quantity,
+                'gross_sales' => Decimal::of((string) $row->gross_sales, 2)->toString(),
+                'discounts' => Decimal::of((string) $row->discounts, 2)->toString(),
+                'returns' => $returns->toString(),
+                'net_sales' => $netSales->toString(),
+                'cogs' => $cogs->toString(),
+                'gross_profit' => $netSales->sub($cogs)->toString(),
+                'return_quantity' => (string) ($returnRow->return_quantity ?? '0.000'),
+            ];
+        })->sortByDesc('net_sales')->values();
+
+        $page = max(1, (int) request()->input('page', 1));
+        $data = new LengthAwarePaginator(
+            $rows->forPage($page, $perPage)->values(),
+            $rows->count(),
+            $perPage,
+            $page,
+            ['path' => request()->url(), 'query' => request()->query()]
+        );
 
         return ['period' => $period, 'data' => $data];
+    }
+
+    public function inventoryValuation(?string $asOf = null, int $perPage = 15): array
+    {
+        $date = $asOf ? Carbon::createFromFormat('Y-m-d', $asOf, self::TIMEZONE)->endOfDay() : Carbon::now(self::TIMEZONE);
+        $products = Product::with(['category:id,name', 'unit:id,symbol', 'inventoryBalance'])->orderBy('name')->paginate($perPage);
+        $rows = $products->getCollection()->map(function (Product $product) use ($date) {
+            $current = $product->inventoryBalance;
+            $historicalMovement = StockMovement::where('product_id', $product->id)
+                ->where('occurred_at', '<=', $date)
+                ->orderByDesc('occurred_at')->orderByDesc('id')->first();
+            $historicalQty = $historicalMovement?->balance_after ?? '0.000';
+            $historicalCost = $this->historicalCostAt($product->id, $date);
+
+            return [
+                'product' => $product,
+                'current_quantity' => $current?->quantity_on_hand ?? '0.000',
+                'current_cost' => $current?->average_cost ?? '0.00',
+                'current_value' => Decimal::of($current?->quantity_on_hand ?? '0', 3)->mul($current?->average_cost ?? '0', 2)->toString(),
+                'historical_quantity' => $historicalQty,
+                'historical_cost' => $historicalCost->toString(),
+                'historical_value' => Decimal::of($historicalQty, 3)->mul($historicalCost, 2)->toString(),
+                'as_of' => $date->toIso8601String(),
+            ];
+        });
+        $currentTotal = $products->getCollection()->sum(fn ($p) => (float) (Decimal::of($p->inventoryBalance?->quantity_on_hand ?? '0', 3)->mul($p->inventoryBalance?->average_cost ?? '0', 2)->toString()));
+        $historicalTotal = $rows->sum(fn ($row) => (float) $row['historical_value']);
+
+        $paginated = new LengthAwarePaginator($rows, $products->total(), $products->perPage(), $products->currentPage(), ['path' => request()->url(), 'query' => request()->query()]);
+
+        return [
+            'as_of' => $date->toDateString(),
+            'period' => ['from_date' => $date->toDateString(), 'to_date' => $date->toDateString()],
+            'summary' => ['current_value' => Decimal::of((string) $currentTotal, 2)->toString(), 'historical_value' => Decimal::of((string) $historicalTotal, 2)->toString()],
+            'data' => $paginated,
+        ];
+    }
+
+    public function historicalCostAt(int $productId, Carbon $asOf): Decimal
+    {
+        $movement = StockMovement::where('product_id', $productId)->where('occurred_at', '<=', $asOf)->orderByDesc('occurred_at')->orderByDesc('id')->first();
+        if ($movement) {
+            return Decimal::of($movement->unit_cost, 2);
+        }
+        $cost = ProductCostHistory::where('product_id', $productId)->where('effective_at', '<=', $asOf)->orderByDesc('effective_at')->orderByDesc('id')->first();
+
+        return Decimal::of($cost?->cost_after ?? '0', 2);
     }
 
     public function availableReportRows(User $user, string $type, array $filters = []): array
@@ -282,6 +399,7 @@ class ReportService
             'returns' => $this->returnRows($period, $limit),
             'expenses' => $this->expenseRows($period, $limit),
             'inventory' => $this->inventoryRows($period, $limit),
+            'inventory-valuation' => $this->inventoryValuationRows($period, $limit),
             'profit-loss' => $this->profitLossExport($period),
             'cash-flow' => $this->cashFlowRows($period, $limit),
             'stock-opnames' => $this->stockOpnameRows($period, $limit),
@@ -347,6 +465,26 @@ class ReportService
         return $report;
     }
 
+    private function inventoryValuationRows(array $period, int $limit): array
+    {
+        $report = $this->inventoryValuation($period['to_date'], $limit);
+        $report['columns'] = [
+            ['key' => 'product', 'label' => 'Produk'], ['key' => 'sku', 'label' => 'SKU'],
+            ['key' => 'current_quantity', 'label' => 'Qty Current'], ['key' => 'current_cost', 'label' => 'HPP Current'],
+            ['key' => 'current_value', 'label' => 'Nilai Current'],
+            ['key' => 'historical_quantity', 'label' => 'Qty Historis'], ['key' => 'historical_cost', 'label' => 'HPP Historis'],
+            ['key' => 'historical_value', 'label' => 'Nilai Historis'],
+        ];
+        $report['summary_labels'] = ['current_value' => 'Nilai Current', 'historical_value' => 'Nilai Historis'];
+        $report['rows'] = $report['data']->getCollection()->map(fn ($row) => [
+            'product' => $row['product']->name, 'sku' => $row['product']->sku,
+            'current_quantity' => $row['current_quantity'], 'current_cost' => $row['current_cost'], 'current_value' => $row['current_value'],
+            'historical_quantity' => $row['historical_quantity'], 'historical_cost' => $row['historical_cost'], 'historical_value' => $row['historical_value'],
+        ]);
+
+        return $report;
+    }
+
     private function profitLossExport(array $period): array
     {
         $report = $this->profitLoss($period['from_date'], $period['to_date']);
@@ -382,9 +520,12 @@ class ReportService
     private function productPerformanceRows(array $period, int $limit): array
     {
         $report = $this->productPerformance($period['from_date'], $period['to_date'], $limit);
-        $report['columns'] = [['key' => 'product_name_snapshot', 'label' => 'Produk'], ['key' => 'quantity', 'label' => 'Qty'], ['key' => 'net_sales', 'label' => 'Net Sales'], ['key' => 'discounts', 'label' => 'Diskon'], ['key' => 'cogs', 'label' => 'COGS']];
+        $report['columns'] = [['key' => 'product_name_snapshot', 'label' => 'Produk'], ['key' => 'quantity', 'label' => 'Qty'], ['key' => 'gross_sales', 'label' => 'Gross Sales'], ['key' => 'discounts', 'label' => 'Diskon'], ['key' => 'returns', 'label' => 'Retur'], ['key' => 'net_sales', 'label' => 'Net Sales'], ['key' => 'cogs', 'label' => 'COGS'], ['key' => 'gross_profit', 'label' => 'Gross Profit']];
         $report['summary_labels'] = [];
-        $report['rows'] = $report['data']->getCollection()->map(fn ($p) => ['product_name_snapshot' => $p->product_name_snapshot, 'quantity' => $p->quantity, 'net_sales' => $p->net_sales, 'discounts' => $p->discounts, 'cogs' => $p->cogs]);
+        $report['rows'] = $report['data']->getCollection()->map(fn ($p) => [
+            'product_name_snapshot' => $p['product_name_snapshot'], 'quantity' => $p['quantity'], 'gross_sales' => $p['gross_sales'],
+            'discounts' => $p['discounts'], 'returns' => $p['returns'], 'net_sales' => $p['net_sales'], 'cogs' => $p['cogs'], 'gross_profit' => $p['gross_profit'],
+        ]);
 
         return $report;
     }

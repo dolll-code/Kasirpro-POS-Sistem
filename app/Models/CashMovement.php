@@ -85,6 +85,8 @@ class CashMovement extends Model
             'EXPENSE_PAYMENT' => 'Pembayaran Biaya Operasional',
             'SUPPLIER_PAYMENT' => 'Pembayaran Pemasok',
             'REFUND_PAYMENT' => 'Pengembalian Dana (Refund)',
+            'CASH_ADJUSTMENT_IN' => 'Adjustment Kas Masuk (Non-operasional)',
+            'CASH_ADJUSTMENT_OUT' => 'Adjustment Kas Keluar (Non-operasional)',
             'MANUAL_INFLOW' => 'Pemasukan Kas Manual',
             'MANUAL_OUTFLOW' => 'Pengeluaran Kas Manual',
             'REVERSAL' => 'Pembalikan (Reversal)',

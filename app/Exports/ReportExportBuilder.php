@@ -155,6 +155,7 @@ class ReportExportBuilder
             'cash-flow' => 'Laporan Arus Kas',
             'stock-opnames' => 'Laporan Stok Opname',
             'product-performance' => 'Performa Produk',
+            'inventory-valuation' => 'Valuasi Persediaan Historis',
             default => 'Laporan',
         };
     }

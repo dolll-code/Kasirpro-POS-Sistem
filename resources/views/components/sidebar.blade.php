@@ -197,6 +197,7 @@
                             @endif
                             @if($user->hasPermission('expenses.create') || $user->hasPermission('expenses.post') || $user->hasPermission('expenses.pay'))
                                 <li><a href="{{ route('expenses.index') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('expenses.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2 text-sm font-medium">Biaya Operasional</a></li>
+                                <li><a href="{{ route('cash-adjustments.index') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('cash-adjustments.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2 text-sm font-medium">Adjustment Kas</a></li>
                             @endif
                             @if($user->hasPermission('returns.request') || $user->hasPermission('returns.approve') || $user->hasPermission('returns.refund'))
                                 <li><a href="{{ route('sales-returns.index') }}" class="group flex gap-x-3 rounded-md {{ request()->routeIs('sales-returns.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8' }} p-2 text-sm font-medium">Retur & Refund</a></li>
@@ -375,6 +376,7 @@
 
                 @if($user && ($user->hasPermission('expenses.create') || $user->hasPermission('expenses.post') || $user->hasPermission('expenses.pay')))
                     <a href="{{ route('expenses.index') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md {{ request()->routeIs('expenses.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">Biaya Operasional</a>
+                    <a href="{{ route('cash-adjustments.index') }}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md {{ request()->routeIs('cash-adjustments.*') ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}">Adjustment Kas</a>
                 @endif
 
                 @if($user && ($user->hasPermission('purchases.view') || $user->hasPermission('purchases.create')))

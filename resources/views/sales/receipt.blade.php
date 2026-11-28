@@ -93,6 +93,10 @@
 
     <!-- Store Profile Snapshot (PRD §5.2, §6.5) -->
     <div class="text-center">
+        @php($logoPath = $sale->store_snapshot['logo_path'] ?? null)
+        @if($logoPath && file_exists(storage_path('app/private/'.$logoPath)))
+            <img src="{{ storage_path('app/private/'.$logoPath) }}" alt="Logo" style="max-height: 36px; max-width: 90px; margin: 0 auto 3px; display: block;">
+        @endif
         <div class="font-bold" style="font-size: 14px;">{{ $sale->store_snapshot['store_name'] ?? 'KasirPro Store' }}</div>
         <div>{{ $sale->store_snapshot['address'] ?? '-' }}</div>
         <div>Telp: {{ $sale->store_snapshot['phone'] ?? '-' }}</div>
@@ -169,6 +173,9 @@
 
     <!-- Footer Snapshot -->
     <div class="text-center" style="margin-top: 6px;">
+        @if(($sale->payment?->payment_method ?? 'cash') === 'bank_transfer')
+            <div style="margin-bottom: 4px; font-size: 9px;">Transfer ke: {{ $sale->payment?->cashAccount?->name ?? '-' }}@if($sale->payment?->reference_number) &bull; Ref: {{ $sale->payment->reference_number }}@endif</div>
+        @endif
         <div>{{ $sale->store_snapshot['receipt_footer'] ?? 'Terima kasih atas kunjungan Anda!' }}</div>
         <div style="font-size: 8px; margin-top: 4px; color: #555;">KasirPro POS &bull; www.kasirpro.local</div>
     </div>

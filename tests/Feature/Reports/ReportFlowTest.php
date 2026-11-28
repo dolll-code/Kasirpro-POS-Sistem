@@ -149,7 +149,7 @@ test('product performance uses historical sale item snapshots', function () {
     $this->product->name = 'Nama Baru Setelah Sale';
     $this->product->save();
     $report = $this->reportService->productPerformance(now('Asia/Jakarta')->toDateString(), now('Asia/Jakarta')->toDateString());
-    expect($report['data']->first()->product_name_snapshot)->toBe('Produk Report')
-        ->and($report['data']->first()->net_sales)->toBe('20000.00')
-        ->and($report['data']->first()->cogs)->toBe('8000.00');
+    expect($report['data']->first()['product_name_snapshot'])->toBe('Produk Report')
+        ->and($report['data']->first()['net_sales'])->toBe('20000.00')
+        ->and($report['data']->first()['cogs'])->toBe('8000.00');
 });

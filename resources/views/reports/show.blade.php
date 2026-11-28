@@ -107,7 +107,10 @@
                             <tr><th class="px-4 py-3">No</th><th class="px-4 py-3">Produk</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Dibuat</th></tr>
                             @break
                         @case('product-performance')
-                            <tr><th class="px-4 py-3">Produk</th><th class="px-4 py-3">Qty</th><th class="px-4 py-3">Net Sales</th><th class="px-4 py-3">Diskon</th><th class="px-4 py-3">COGS</th></tr>
+                            <tr><th class="px-4 py-3">Produk</th><th class="px-4 py-3">Qty</th><th class="px-4 py-3">Gross</th><th class="px-4 py-3">Diskon</th><th class="px-4 py-3">Retur</th><th class="px-4 py-3">Net Sales</th><th class="px-4 py-3">COGS</th><th class="px-4 py-3">Gross Profit</th></tr>
+                            @break
+                        @case('inventory-valuation')
+                            <tr><th class="px-4 py-3">Produk</th><th class="px-4 py-3">Qty Current</th><th class="px-4 py-3">HPP Current</th><th class="px-4 py-3">Nilai Current</th><th class="px-4 py-3">Qty Historis</th><th class="px-4 py-3">HPP Historis</th><th class="px-4 py-3">Nilai Historis</th></tr>
                             @break
                     @endswitch
                     </thead>
@@ -136,7 +139,10 @@
                                 <tr><td class="px-4 py-3 font-mono">{{ $row->opname_number }}</td><td class="px-4 py-3">{{ $row->items_count }}</td><td class="px-4 py-3">{{ $row->status }}</td><td class="px-4 py-3">{{ $row->created_at?->format('d/m/Y H:i') }}</td></tr>
                                 @break
                             @case('product-performance')
-                                <tr><td class="px-4 py-3">{{ $row->product_name_snapshot }}</td><td class="px-4 py-3">{{ $row->quantity }}</td><td class="px-4 py-3">{{ $money($row->net_sales) }}</td><td class="px-4 py-3">{{ $money($row->discounts) }}</td><td class="px-4 py-3">{{ $money($row->cogs) }}</td></tr>
+                                <tr><td class="px-4 py-3">{{ $row['product_name_snapshot'] }}</td><td class="px-4 py-3">{{ $row['quantity'] }}</td><td class="px-4 py-3">{{ $money($row['gross_sales']) }}</td><td class="px-4 py-3">{{ $money($row['discounts']) }}</td><td class="px-4 py-3">{{ $money($row['returns']) }}</td><td class="px-4 py-3">{{ $money($row['net_sales']) }}</td><td class="px-4 py-3">{{ $money($row['cogs']) }}</td><td class="px-4 py-3">{{ $money($row['gross_profit']) }}</td></tr>
+                                @break
+                            @case('inventory-valuation')
+                                <tr><td class="px-4 py-3">{{ $row['product']->name }}<div class="text-xs text-slate-500 font-mono">{{ $row['product']->sku }}</div></td><td class="px-4 py-3">{{ $row['current_quantity'] }}</td><td class="px-4 py-3">{{ $money($row['current_cost']) }}</td><td class="px-4 py-3">{{ $money($row['current_value']) }}</td><td class="px-4 py-3">{{ $row['historical_quantity'] }}</td><td class="px-4 py-3">{{ $money($row['historical_cost']) }}</td><td class="px-4 py-3">{{ $money($row['historical_value']) }}</td></tr>
                                 @break
                         @endswitch
                     @endforeach

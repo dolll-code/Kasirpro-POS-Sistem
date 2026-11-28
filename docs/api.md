@@ -478,3 +478,11 @@ Web: `POST /reports/{type}/export`, `GET /reports/exports/history`, `GET /report
 Body export: `format` (`pdf`/`xlsx`), `from`, `to`, `sort`, `dir`. Permission create/download: `reports.export` + akses laporan. File disimpan di disk privat `storage/app/private/exports`, TTL default 24 jam, maksimal 5.000 baris per ekspor.
 
 Status: `requested`, `processing`, `completed`, `failed`, `expired`. Error: 403 owner/permission, 404 file hilang, 409 belum selesai/gagal, 410 kedaluwarsa. API mengembalikan record `report_exports`; download menggunakan `Content-Disposition` privat, bukan URL publik permanen.
+
+## 13. P1 Enhancements
+
+- Report `product-performance`: Qty, Gross Sales, Discount, Return, Net Sales, COGS, Gross Profit (snapshot sale item).
+- Report `inventory-valuation?as_of=YYYY-MM-DD`: valuasi current vs historis, rekonstruksi ledger + cost history.
+- Period comparison: `compare_from`/`compare_to` pada Laba Rugi; durasi ditampilkan dan perubahan nol-basis = `—`.
+- Dashboard: kartu gross profit/COGS/retur hari ini, tren penjualan 7 hari, indikator stok, aktivitas kas (hanya peran berizin laporan).
+- Cash adjustment: `/cash-adjustments` (web) — maker-checker, category terbatas, cash movement pada approval, bukan omzet/expense.

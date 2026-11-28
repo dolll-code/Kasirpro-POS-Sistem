@@ -479,3 +479,12 @@ Hanya Admin/Supervisor dengan izin `payments.verify_transfer` dapat membuka menu
 3. Setelah `completed`, klik **Unduh**. File disimpan privat dan memiliki masa berlaku (default 24 jam). Setelah kedaluwarsa, unduhan menghasilkan status expired dan file dibersihkan scheduler.
 4. Buka **Riwayat ekspor** untuk melihat status, waktu, dan error. Jika gagal, gunakan **Coba Lagi** untuk membuat permintaan baru.
 5. File hanya dapat diunduh oleh pemilik atau Admin yang masih memiliki izin `reports.export`.
+
+## 18. P1 Enhancements
+
+1. **Performa Produk**: menu Laporan → Performa Produk. Kolom Qty, Gross, Diskon, Retur, Net Sales, COGS, Gross Profit berasal dari snapshot transaksi.
+2. **Valuasi Historis**: pilih Laporan → Valuasi Historis dan tanggal acuan. Nilai current dan historis ditampilkan berdampingan.
+3. **Perbandingan Periode**: pada Laba Rugi isi periode pembanding; perubahan persen bertanda `—` jika basis nol.
+4. **Adjustment Kas**: menu **Adjustment Kas**; pengajuan memerlukan alasan dan approval pengguna lain. Adjustment tidak dihitung sebagai penjualan atau biaya. Admin yang menyetujui pengajuannya sendiri wajib mengisi alasan override.
+5. **Struk**: logo toko, footer, informasi transfer, dan pilihan cetak 58/80 mm tersedia pada halaman struk.
+6. **Riwayat ekspor**: menampilkan status antrean dan failed jobs; ekspor gagal dapat dicoba ulang.

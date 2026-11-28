@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ProfileController;
 use App\Http\Controllers\CashAccountController;
+use App\Http\Controllers\CashAdjustmentController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\ExpenseController;
@@ -141,6 +142,16 @@ Route::middleware(['auth', 'active'])->group(function () {
 
         Route::get('/store-profile', [StoreProfileController::class, 'edit'])->name('store-profile.edit');
         Route::put('/store-profile', [StoreProfileController::class, 'update'])->name('store-profile.update');
+    });
+
+    // Cash Adjustment Non-operasional (FR-CASH-03 P1, maker-checker)
+    Route::prefix('cash-adjustments')->name('cash-adjustments.')->group(function () {
+        Route::get('/', [CashAdjustmentController::class, 'index'])->middleware('permission:expenses.create|expenses.post')->name('index');
+        Route::get('/create', [CashAdjustmentController::class, 'create'])->middleware('permission:expenses.create')->name('create');
+        Route::post('/', [CashAdjustmentController::class, 'store'])->middleware('permission:expenses.create')->name('store');
+        Route::get('/{cashAdjustment}', [CashAdjustmentController::class, 'show'])->middleware('permission:expenses.create|expenses.post|expenses.pay')->name('show');
+        Route::post('/{cashAdjustment}/decision', [CashAdjustmentController::class, 'decide'])->middleware('permission:expenses.post')->name('decide');
+        Route::post('/{cashAdjustment}/cancel', [CashAdjustmentController::class, 'cancel'])->middleware('permission:expenses.create')->name('cancel');
     });
 
     // Inventory & Stock Ledger (FR-INV-02..07)

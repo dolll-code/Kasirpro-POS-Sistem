@@ -28,6 +28,26 @@
         </div>
     </div>
 
+    <section class="grid gap-4 rounded-xl border border-slate-700 bg-slate-800 p-5 sm:grid-cols-3">
+        <div><div class="text-xs uppercase text-slate-400">Gross Profit Hari Ini</div><div class="mt-1 text-lg font-bold text-emerald-300">Rp {{ number_format((float) $today_profit['gross_profit'], 2, ',', '.') }}</div></div>
+        <div><div class="text-xs uppercase text-slate-400">COGS Hari Ini</div><div class="mt-1 text-lg font-bold text-slate-200">Rp {{ number_format((float) $today_profit['gross_cogs'], 2, ',', '.') }}</div></div>
+        <div><div class="text-xs uppercase text-slate-400">Retur Hari Ini</div><div class="mt-1 text-lg font-bold text-amber-300">Rp {{ number_format((float) $today_profit['sales_returns'], 2, ',', '.') }}</div></div>
+    </section>
+
+    @if(! empty($chart))
+        <section class="rounded-xl border border-slate-700 bg-slate-800 p-5">
+            <h2 class="mb-3 font-semibold text-white">Tren Penjualan 7 Hari</h2>
+            <div class="flex items-end gap-2" style="height: 9rem">
+                @foreach($chart as $point)
+                    <div class="flex flex-1 flex-col items-center justify-end gap-1">
+                        <div class="w-full rounded-t bg-emerald-500/80" style="height: {{ max(4, $point['percent']) }}%"></div>
+                        <span class="text-[10px] text-slate-400">{{ $point['label'] }}</span>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
     <div class="grid gap-4 lg:grid-cols-2">
         <section class="rounded-xl border border-slate-700 bg-slate-800">
             <div class="border-b border-slate-700 px-5 py-4"><h2 class="font-semibold text-white">Transaksi Terbaru</h2><p class="text-xs text-slate-400">{{ $can_view_all ? 'Seluruh kasir' : 'Hanya transaksi Anda' }}</p></div>
@@ -42,26 +62,28 @@
                 @endforelse
             </div>
         </section>
-        <section class="rounded-xl border border-slate-700 bg-slate-800">
-            <div class="border-b border-slate-700 px-5 py-4"><h2 class="font-semibold text-white">Aktivitas Kas Terbaru</h2></div>
-            <div class="divide-y divide-slate-700">
-                @forelse($recent_cash as $movement)
-                    <div class="flex items-center justify-between px-5 py-3 text-sm">
-                        <div><div class="text-white">{{ $movement->cashAccount?->name }}</div><div class="text-xs text-slate-400">{{ $movement->movement_type }} &middot; {{ $movement->occurred_at?->format('d/m/Y H:i') }}</div></div>
-                        <div class="{{ $movement->direction === 'in' ? 'text-emerald-300' : 'text-rose-300' }}">{{ $movement->direction === 'in' ? '+' : '-' }} Rp {{ number_format((float) $movement->amount, 2, ',', '.') }}</div>
-                    </div>
-                @empty
-                    <div class="px-5 py-8 text-sm text-slate-400">Belum ada aktivitas kas.</div>
-                @endforelse
-            </div>
-        </section>
+        @if(auth()->user()->hasPermission('reports.view_all') || auth()->user()->hasPermission('reports.view_limited'))
+            <section class="rounded-xl border border-slate-700 bg-slate-800">
+                <div class="border-b border-slate-700 px-5 py-4"><h2 class="font-semibold text-white">Aktivitas Kas Terbaru</h2></div>
+                <div class="divide-y divide-slate-700">
+                    @forelse($recent_cash as $movement)
+                        <div class="flex items-center justify-between px-5 py-3 text-sm">
+                            <div><div class="text-white">{{ $movement->cashAccount?->name }}</div><div class="text-xs text-slate-400">{{ $movement->movement_type }} &middot; {{ $movement->occurred_at?->format('d/m/Y H:i') }}</div></div>
+                            <div class="{{ $movement->direction === 'in' ? 'text-emerald-300' : 'text-rose-300' }}">{{ $movement->direction === 'in' ? '+' : '-' }} Rp {{ number_format((float) $movement->amount, 2, ',', '.') }}</div>
+                        </div>
+                    @empty
+                        <div class="px-5 py-8 text-sm text-slate-400">Belum ada aktivitas kas.</div>
+                    @endforelse
+                </div>
+            </section>
+        @endif
     </div>
 
     @if(auth()->user()->hasPermission('reports.view_all') || auth()->user()->hasPermission('reports.view_limited'))
         <section class="rounded-xl border border-slate-700 bg-slate-800 p-5">
             <h2 class="mb-3 font-semibold text-white">Laporan</h2>
             <div class="flex flex-wrap gap-2 text-sm">
-                @foreach(['sales' => 'Penjualan', 'purchases' => 'Pembelian', 'returns' => 'Retur', 'expenses' => 'Biaya', 'inventory' => 'Persediaan', 'profit-loss' => 'Laba Rugi', 'cash-flow' => 'Arus Kas', 'stock-opnames' => 'Opname', 'product-performance' => 'Performa Produk'] as $key => $label)
+                @foreach(['sales' => 'Penjualan', 'purchases' => 'Pembelian', 'returns' => 'Retur', 'expenses' => 'Biaya', 'inventory' => 'Persediaan', 'profit-loss' => 'Laba Rugi', 'cash-flow' => 'Arus Kas', 'stock-opnames' => 'Opname', 'product-performance' => 'Performa Produk', 'inventory-valuation' => 'Valuasi Historis'] as $key => $label)
                     <a href="{{ route('reports.show', $key) }}" class="rounded-lg border border-slate-600 px-3 py-2 text-slate-200 hover:bg-slate-700">{{ $label }}</a>
                 @endforeach
             </div>
